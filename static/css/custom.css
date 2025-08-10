@@ -1,0 +1,19 @@
+.bg-orange {
+    background-color: #f28c38; /* Orange color for nav and footer */
+}
+.navbar-brand, .nav-link {
+    color: white !important;
+}
+.navbar-brand:hover, .nav-link:hover {
+    color: #e0e0e0 !important;
+}
+body {
+    background-color: #f8f9fa; /* Light background for contrast */
+}
+.card {
+    border: 1px solid #ddd;
+    transition: transform 0.2s;
+}
+.card:hover {
+    transform: scale(1.05);
+}

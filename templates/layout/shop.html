@@ -1,0 +1,47 @@
+{% extends 'layout/base.html' %}
+{% block title %}Shop - Pet Shop{% endblock %}
+{% block content %}
+    <h1 class="mb-4">Shop</h1>
+    <!-- Filter Section -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <select id="pet-type-filter" class="form-select">
+                <option value="">All Pets</option>
+                <option value="dog">Dog</option>
+                <option value="cat">Cat</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select id="brand-filter" class="form-select">
+                <option value="">All Brands</option>
+                <option value="Royal Canin">Royal Canin</option>
+                <option value="PetSafe">PetSafe</option>
+                <option value="Flexi">Flexi</option>
+                <option value="PetComfort">PetComfort</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select id="price-filter" class="form-select">
+                <option value="">All Prices</option>
+                <option value="0-20">0 - $20</option>
+                <option value="20-40">$20 - $40</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Product Grid -->
+    <div class="row" id="product-grid">
+        {% for product in products %}
+            <div class="col-md-4 mb-4 product-item" data-type="{{ product.type }}" data-brand="{{ product.brand }}" data-price="{{ product.price }}">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ product.name }}</h5>
+                        <p class="card-text">{{ product.description }}</p>
+                        <p class="card-text"><strong>Price:</strong> ${{ product.price }}</p>
+                        <button class="btn btn-primary add-to-cart" data-id="{{ product.id }}">Add to Cart</button>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}

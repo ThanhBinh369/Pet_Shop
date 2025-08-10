@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid h-100">
+        <div class="row d-flex justify-content-center align-items-center h-100">
+            <div class="col-md-9 col-lg-6 col-xl-5">
+                <img src="https://i.pinimg.com/736x/ec/c6/4b/ecc64b742cfb907f60b1d5d2b3aec91a.jpg"
+                     class="img-fluid" alt="Register Image">
+            </div>
+            <div class="col-md-8 col-lg-6 col-xl-4 offset-xl-1" style="margin-top: 20px">
+                <form method="POST" action="/register">
+                    {% if error_message %}
+                    <div class="alert alert-danger">{{ error_message }}</div>
+                    {% endif %}
+                    <div class="mb-4">
+                        <label for="ho" class="form-label">First Name</label>
+                        <input type="text" id="ho" name="ho" class="form-control form-control-lg" placeholder="Enter First Name" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="ten" class="form-label">Last Name</label>
+                        <input type="text" id="ten" name="ten" class="form-control form-control-lg" placeholder="Enter Last Name" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="ngaySinh" class="form-label">Date of Birth</label>
+                        <input type="date" id="ngaySinh" name="ngaySinh" class="form-control form-control-lg" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="gioiTinh" class="form-label">Gender</label>
+                        <select id="gioiTinh" name="gioiTinh" class="form-select form-select-lg" required>
+                            <option value="">Select Gender</option>
+                            <option value="1">Male</option>
+                            <option value="0">Female</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="maCanCuoc" class="form-label">Identity Number</label>
+                        <input type="text" id="maCanCuoc" name="maCanCuoc" class="form-control form-control-lg" placeholder="Enter Identity Number" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="diaChi" class="form-label">Address</label>
+                        <textarea id="diaChi" name="diaChi" class="form-control form-control-lg" placeholder="Enter Address" required></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label for="soDienThoai" class="form-label">Phone Number</label>
+                        <input type="text" id="soDienThoai" name="soDienThoai" class="form-control form-control-lg" placeholder="Enter Phone Number" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" id="password" name="password" class="form-control form-control-lg" placeholder="Enter Password" required>
+                    </div>
+                    <div class="text-center text-lg-start mt-4 pt-2">
+                        <button type="submit" class="btn btn-primary px-5">Register</button>
+                        <p class="small fw-bold mt-2 pt-1 mb-0">Already have an account? <a href="/login" class="link-danger">Login</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
