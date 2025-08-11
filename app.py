@@ -3,6 +3,12 @@ from flask_sqlalchemy import SQLAlchemy
 from config import Config
 from models import db, TaiKhoan, DangNhap, SanPham, Loai
 from services import AuthService, ProductService, CartService, OrderService
+# Import controllers
+try:
+    from controllers.auth_controller import auth_bp
+except ImportError:
+    from auth_controller import auth_bp
+
 import os
 
 # Khởi tạo Flask với thư mục templates và static tùy chỉnh
@@ -15,6 +21,9 @@ app.config.from_object(Config)
 
 # Khởi tạo database
 db.init_app(app)
+
+# Đăng ký blueprints
+app.register_blueprint(auth_bp)
 
 # Tạo bảng nếu chưa tồn tại
 with app.app_context():
@@ -51,88 +60,12 @@ def contact():
     return render_template('layout/contact.html')
 
 
-# Route đăng nhập
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-
-        success, result = AuthService.login_user(username, password)
-
-        if success:
-            session['user_id'] = result.MaTaiKhoan
-            session['username'] = username
-            session['full_name'] = f"{result.Ho} {result.Ten}"
-            flash('Đăng nhập thành công!', 'success')
-            return redirect(url_for('index'))
-        else:
-            flash(result, 'error')
-
-    return render_template('login.html')
-
-
-# Route đăng xuất
-@app.route('/logout')
-def logout():
-    session.clear()
-    flash('Đã đăng xuất!', 'info')
-    return redirect(url_for('index'))
-
-
-# Route đăng ký
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        # Lấy dữ liệu từ form
-        ho = request.form['ho']
-        ten = request.form['ten']
-        ngay_sinh = request.form['ngaySinh']
-        gioi_tinh = request.form['gioiTinh']
-        ma_can_cuoc = request.form['maCanCuoc']
-        dia_chi = request.form['diaChi']
-        so_dien_thoai = request.form['soDienThoai']
-        ten_tai_khoan = request.form.get('tenTaiKhoan', '')  # Thêm field này vào form
-        password = request.form['password']
-        email = request.form.get('email', '')  # Thêm field này vào form
-
-        # Kiểm tra dữ liệu
-        if not all([ho, ten, ngay_sinh, gioi_tinh, ma_can_cuoc, dia_chi, so_dien_thoai, ten_tai_khoan, password]):
-            flash('Vui lòng điền đầy đủ thông tin!', 'error')
-            return render_template('register.html')
-
-        # Đăng ký tài khoản
-        success, result = AuthService.register_user(
-            ho, ten, ngay_sinh, gioi_tinh, ma_can_cuoc,
-            dia_chi, so_dien_thoai, ten_tai_khoan, password, email
-        )
-
-        if success:
-            flash(f'Đăng ký thành công! Mã tài khoản của bạn là {result}.', 'success')
-            return redirect(url_for('login'))
-        else:
-            flash(result, 'error')
-
-    return render_template('register.html')
-
-
-# Route xác thực mã
-@app.route('/verify-code', methods=['POST'])
-def verify_code():
-    code = request.form['verificationCode']
-    # Logic kiểm tra mã code (cần implement thêm)
-    if code == "123456":  # Mã tạm thời
-        return "Mã xác nhận đúng! Vui lòng đặt lại mật khẩu."
-    else:
-        return "Mã xác nhận không đúng. Vui lòng thử lại."
-
-
 # Route giỏ hàng
 @app.route('/cart')
 def cart():
     if 'user_id' not in session:
         flash('Vui lòng đăng nhập để xem giỏ hàng!', 'warning')
-        return redirect(url_for('login'))
+        return redirect(url_for('auth.login'))
 
     cart_items = CartService.get_cart_items(session['user_id'])
     total = sum(item['price'] * item['quantity'] for item in cart_items)
@@ -170,7 +103,7 @@ def add_to_cart():
 def checkout():
     if 'user_id' not in session:
         flash('Vui lòng đăng nhập!', 'warning')
-        return redirect(url_for('login'))
+        return redirect(url_for('auth.login'))
 
     cart_items = CartService.get_cart_items(session['user_id'])
     if not cart_items:

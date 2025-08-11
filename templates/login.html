@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
+    <title>Đăng nhập</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
@@ -14,46 +14,52 @@
             </div>
             <div class="col-md-8 col-lg-6 col-xl-4 offset-xl-1" style="margin-top: 20px">
                 <form method="POST" action="/login">
-                    {% if error_message %}
-                    <div class="alert alert-danger">{{ error_message }}</div>
-                    {% endif %}
+                    <!-- Flash messages -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else category }}">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
                     <div class="mb-4">
-                        <label for="username" class="form-label">Username</label>
-                        <input type="text" id="username" name="username" class="form-control form-control-lg" placeholder="Enter username" required>
+                        <label for="username" class="form-label">Tên tài khoản</label>
+                        <input type="text" id="username" name="username" class="form-control form-control-lg" placeholder="Nhập tên tài khoản" required>
                     </div>
                     <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" id="password" name="password" class="form-control form-control-lg" placeholder="Enter password" required>
+                        <label for="password" class="form-label">Mật khẩu</label>
+                        <input type="password" id="password" name="password" class="form-control form-control-lg" placeholder="Nhập mật khẩu" required>
                     </div>
                     <div class="mb-3">
                         <button type="button" class="btn btn-link p-0" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal">
-                            Forgot Password?
+                            Quên mật khẩu?
                         </button>
                     </div>
                     <div class="text-center text-lg-start mt-4 pt-2">
-                        <button type="submit" class="btn btn-primary px-5">Login</button>
-                        <p class="small fw-bold mt-2 pt-1 mb-0">Don't have an account? <a href="/register" class="link-danger">Register</a></p>
+                        <button type="submit" class="btn btn-primary px-5">Đăng nhập</button>
+                        <p class="small fw-bold mt-2 pt-1 mb-0">Chưa có tài khoản? <a href="/register" class="link-danger">Đăng ký</a></p>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Modal -->
+    <!-- Modal Quên mật khẩu -->
     <div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-labelledby="forgotPasswordModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="forgotPasswordModalLabel">Forgot Password</h5>
+                    <h5 class="modal-title" id="forgotPasswordModalLabel">Quên mật khẩu</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form>
+                    <form action="/forgot-password" method="POST">
                         <div class="mb-3">
-                            <label for="verificationCode" class="form-label">Enter Verification Code</label>
-                            <input type="text" class="form-control" id="verificationCode" placeholder="Enter your code" required>
+                            <label for="email" class="form-label">Nhập email của bạn</label>
+                            <input type="email" class="form-control" id="email" name="email" placeholder="Nhập email" required>
                         </div>
-                        <button type="submit" class="btn btn-primary">Submit</button>
+                        <button type="submit" class="btn btn-primary">Gửi mã xác nhận</button>
                     </form>
                 </div>
             </div>

@@ -10,7 +10,7 @@ def login():
     """Đăng nhập"""
     # Nếu đã đăng nhập, chuyển về trang chủ
     if 'user_id' in session:
-        return redirect(url_for('main.index'))
+        return redirect(url_for('index'))
 
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -32,7 +32,7 @@ def login():
 
             # Redirect về trang trước đó nếu có
             next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('main.index'))
+            return redirect(next_page) if next_page else redirect(url_for('index'))
         else:
             flash(result, 'error')
 
