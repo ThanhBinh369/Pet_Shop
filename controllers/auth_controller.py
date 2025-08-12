@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from services import AuthService
+from models import TaiKhoan, DangNhap
 
 # Tạo blueprint cho authentication
 auth_bp = Blueprint('auth', __name__)
@@ -144,10 +145,29 @@ def profile():
         flash('Vui lòng đăng nhập để xem thông tin cá nhân!', 'warning')
         return redirect(url_for('auth.login'))
 
-    # TODO: Lấy thông tin chi tiết user từ database
-    user_info = {
-        'full_name': session.get('full_name'),
-        'username': session.get('username')
-    }
+    try:
+        # Lấy thông tin chi tiết user từ database
+        tai_khoan = TaiKhoan.query.get(session['user_id'])
+        dang_nhap = DangNhap.query.filter_by(MaTaiKhoan=session['user_id']).first()
 
-    return render_template('profile.html', user=user_info)
+        if not tai_khoan:
+            flash('Không tìm thấy thông tin tài khoản!', 'error')
+            return redirect(url_for('index'))
+
+        user_info = {
+            'full_name': f"{tai_khoan.Ho} {tai_khoan.Ten}" if tai_khoan.Ho and tai_khoan.Ten else session.get(
+                'full_name'),
+            'username': session.get('username'),
+            'email': dang_nhap.DiaChiEmail if dang_nhap else None,
+            'phone': tai_khoan.SoDienThoai,
+            'birth_date': tai_khoan.NgaySinh.strftime('%d/%m/%Y') if tai_khoan.NgaySinh else None,
+            'gender': 'Nam' if tai_khoan.GioiTinh == 'M' else 'Nữ' if tai_khoan.GioiTinh == 'F' else tai_khoan.GioiTinh,
+            'address': tai_khoan.DiaChi,
+            'citizen_id': tai_khoan.MaCanCuoc
+        }
+
+        return render_template('profile.html', user=user_info)
+
+    except Exception as e:
+        flash(f'Có lỗi xảy ra: {str(e)}', 'error')
+        return redirect(url_for('index'))

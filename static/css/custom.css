@@ -17,3 +17,15 @@ body {
 .card:hover {
     transform: scale(1.05);
 }
+.list-group-item.active {
+    background-color: #f28c38;
+    border-color: #f28c38;
+}
+.btn-primary {
+    background-color: #f28c38;
+    border-color: #f28c38;
+}
+.btn-primary:hover {
+    background-color: #d8701f;
+    border-color: #d8701f;
+}
