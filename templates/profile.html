@@ -1,62 +1,111 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pet Shop</title>
-    <link rel="stylesheet" href="/static/css/custom.css">
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-orange">
-        <a class="navbar-brand" href="#">Pet Shop</a>
-        <div class="navbar-nav">
-            <a class="nav-link" href="#">{{ current_user }}</a>
-            <a class="nav-link" href="#">Thông tin tài khoản</a>
-            <a class="nav-link" href="#">Giỏ hàng</a>
-            <a class="nav-link" href="#">Đăng xuất</a>
-        </div>
-    </nav>
+{% extends "layout/base.html" %}
 
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col-md-3">
-                <div class="list-group">
-                    <a href="#" class="list-group-item list-group-item-action active" aria-current="true">
-                        Thông tin cá nhân
-                    </a>
-                    <a href="#" class="list-group-item list-group-item-action">Đơn hàng</a>
-                    <a href="#" class="list-group-item list-group-item-action">Địa chỉ</a>
-                    <a href="#" class="list-group-item list-group-item-action">Bảo mật</a>
+{% block title %}Thông tin cá nhân - Pet Shop{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="list-group">
+                <a href="#personal-info" class="list-group-item list-group-item-action active" aria-current="true">
+                    <i class="bi bi-person"></i> Thông tin cá nhân
+                </a>
+                <a href="#orders" class="list-group-item list-group-item-action">
+                    <i class="bi bi-bag"></i> Đơn hàng
+                </a>
+                <a href="#address" class="list-group-item list-group-item-action">
+                    <i class="bi bi-geo-alt"></i> Địa chỉ
+                </a>
+                <a href="#security" class="list-group-item list-group-item-action">
+                    <i class="bi bi-shield-lock"></i> Bảo mật
+                </a>
+            </div>
+        </div>
+        <div class="col-md-9">
+            <!-- Personal Information Section -->
+            <div id="personal-info" class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Thông tin cá nhân</h5>
+                    <button class="btn btn-primary btn-sm">
+                        <i class="bi bi-pencil"></i> Chỉnh sửa
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="text-muted">Họ và tên</label>
+                                <p class="fw-bold">{{ user.full_name or 'Chưa cập nhật' }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="text-muted">Tên tài khoản</label>
+                                <p class="fw-bold">{{ user.username or 'Chưa cập nhật' }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="text-muted">Email</label>
+                                <p class="fw-bold">{{ user.email or 'Chưa cập nhật' }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="text-muted">Số điện thoại</label>
+                                <p class="fw-bold">{{ user.phone or 'Chưa cập nhật' }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="text-muted">Ngày sinh</label>
+                                <p class="fw-bold">{{ user.birth_date or 'Chưa cập nhật' }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="text-muted">Giới tính</label>
+                                <p class="fw-bold">{{ user.gender or 'Chưa cập nhật' }}</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-9">
-                <div class="tab-content">
-                    <div class="tab-pane fade show active">
-                        <h2>Thông tin cá nhân</h2>
-                        <button class="btn btn-primary">Chỉnh sửa</button>
-                        <div class="mt-3">
-                            <p><strong>Họ và tên</strong><br>{{ user.full_name or 'Chưa cập nhật' }}</p>
-                            <p><strong>Tên tài khoản</strong><br>{{ user.username }}</p>
-                            <p><strong>Email</strong><br>{{ user.email or 'Chưa cập nhật' }}</p>
-                            <p><strong>Số điện thoại</strong><br>{{ user.phone or 'Chưa cập nhật' }}</p>
-                            <p><strong>Ngày sinh</strong><br>{{ user.birth_date or 'Chưa cập nhật' }}</p>
-                            <p><strong>Giới tính</strong><br>{{ user.gender or 'Chưa cập nhật' }}</p>
-                        </div>
-                        <h2>Địa chỉ</h2>
-                        <p>{{ user.address or 'Chưa cập nhật' }}</p>
-                        <h2>Lịch sử đơn hàng</h2>
-                        <p>Chức năng này sẽ được cập nhật sớm.</p>
-                        <h2>Sổ địa chỉ</h2>
-                        <p>Chức năng này sẽ được cập nhật sớm.</p>
-                        <h2>Bảo mật tài khoản</h2>
-                        <p>Để bảo mật tài khoản, bạn nên thay đổi mật khẩu định kỳ.</p>
-                        <button class="btn btn-primary">Đổi mật khẩu</button>
+
+            <!-- Address Section -->
+            <div id="address" class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Địa chỉ</h5>
+                </div>
+                <div class="card-body">
+                    <p>{{ user.address or 'Chưa cập nhật địa chỉ' }}</p>
+                    <button class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-plus"></i> Thêm địa chỉ mới
+                    </button>
+                </div>
+            </div>
+
+            <!-- Order History Section -->
+            <div id="orders" class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Lịch sử đơn hàng</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Chức năng này sẽ được cập nhật sớm.</p>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> 
+                        Bạn chưa có đơn hàng nào. <a href="{{ url_for('shop') }}" class="alert-link">Mua sắm ngay</a>
                     </div>
+                </div>
+            </div>
+
+            <!-- Security Section -->
+            <div id="security" class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Bảo mật tài khoản</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Để bảo mật tài khoản, bạn nên thay đổi mật khẩu định kỳ.</p>
+                    <button class="btn btn-warning">
+                        <i class="bi bi-key"></i> Đổi mật khẩu
+                    </button>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <script src="/static/js/app.js"></script>
-</body>
-</html>
+<!-- CSS được load từ custom.css -->
+{% endblock %}

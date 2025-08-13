@@ -12,67 +12,94 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="/static/js/app.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
-                    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-                    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-                    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </head>
 <body>
-    <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-orange">
-        <div class="container">
-           <a class="navbar-brand text-white fw-bold fs-2" href="/" style="font-family: 'Arial', sans-serif;">Pet Shop</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link text-white" href="/">Home</a></li>
-                    <li class="nav-item"><a class="nav-link text-white" href="/shop">Shop</a></li>
-                    <li class="nav-item"><a class="nav-link text-white" href="/about">About Us</a></li>
-                    <li class="nav-item"><a class="nav-link text-white" href="/contact">Contact Us</a></li>
+<!-- Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-light bg-orange">
+    <div class="container">
+        <a class="navbar-brand text-white fw-bold fs-2" href="/" style="font-family: 'Arial', sans-serif;">Pet Shop</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <!-- Navigation Section - chỉ cập nhật phần navigation -->
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link text-white" href="/">Home</a></li>
+                <li class="nav-item"><a class="nav-link text-white" href="/shop">Shop</a></li>
+                <li class="nav-item"><a class="nav-link text-white" href="/about">About Us</a></li>
+                <li class="nav-item"><a class="nav-link text-white" href="/contact">Contact Us</a></li>
+
+                <!-- Conditional Login/Profile Button -->
+                {% if 'user_id' in session %}
+                    <!-- User is logged in - show profile and logout -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle"></i> {{ session.get('full_name', session.get('username', 'User')) }}
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('auth.profile') }}">
+                                <i class="bi bi-person"></i> Thông tin cá nhân
+                            </a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                                <i class="bi bi-box-arrow-right"></i> Đăng xuất
+                            </a></li>
+                        </ul>
+                    </li>
+                {% else %}
+                    <!-- User is not logged in - show login button -->
                     <li class="nav-item">
                         <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light text-white me-2">
                             <i class="bi bi-person"></i> Đăng Nhập
                         </a>
                     </li>
-                   <li class="nav-item">
-                        <a href="{{ url_for('cart') }}" class="btn btn-outline-light text-white">
-                            <i class="bi bi-cart"></i> Giỏ Hàng <span class="badge bg-warning text-dark">{{ cart|length if cart is defined else 0 }}</span>
-                        </a>
-                    </li>
-                </ul>
+                {% endif %}
 
-                <!-- Search Bar -->
-                <form class="d-flex ms-3" style="width: 33.33%; min-width: 200px;">
-                    <div class="input-group">
-                        <input class="form-control" type="search" placeholder="Tìm kiếm..." aria-label="Search">
-                        <button class="btn btn-outline-light" type="submit">
-                            <i class="bi bi-search"></i>
-                        </button>
-                    </div>
-                </form>
-            </div>
+                <li class="nav-item">
+                    <a href="{{ url_for('cart') }}" class="btn btn-outline-light text-white">
+                        <i class="bi bi-cart"></i> Giỏ Hàng <span
+                            class="badge bg-warning text-dark">{{ cart|length if cart is defined else 0 }}</span>
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Search Bar -->
+            <form class="d-flex ms-3" style="width: 33.33%; min-width: 200px;">
+                <div class="input-group">
+                    <input class="form-control" type="search" placeholder="Tìm kiếm..." aria-label="Search">
+                    <button class="btn btn-outline-light" type="submit">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </form>
         </div>
-    </nav>
-
-
-    <!-- Main Content -->
-    <div class="container mt-4">
-        {% block content %}{% endblock %}
     </div>
+</nav>
 
-    <!-- Footer -->
-    <footer class="bg-orange text-white text-center py-3 mt-4">
-        <div class="container">
-            <p>"If animals could talk, they'd talk about us!"</p>
-            <p>8582 Fairground St. Tallahassee, FL 32303</p>
-            <div>
-                <a href="#" class="text-white me-2"><i class="fab fa-facebook"></i> Facebook</a>
-                <a href="#" class="text-white me-2"><i class="fab fa-twitter"></i> Twitter</a>
-                <a href="#" class="text-white me-2"><i class="fab fa-instagram"></i> Instagram</a>
-                <a href="#" class="text-white"><i class="fas fa-blog"></i> Blog</a>
-            </div>
+
+<!-- Main Content -->
+<div class="container mt-4">
+    {% block content %}{% endblock %}
+</div>
+
+<!-- Footer -->
+<footer class="bg-orange text-white text-center py-3 mt-4">
+    <div class="container">
+        <p>"If animals could talk, they'd talk about us!"</p>
+        <p>8582 Fairground St. Tallahassee, FL 32303</p>
+        <div>
+            <a href="#" class="text-white me-2"><i class="fab fa-facebook"></i> Facebook</a>
+            <a href="#" class="text-white me-2"><i class="fab fa-twitter"></i> Twitter</a>
+            <a href="#" class="text-white me-2"><i class="fab fa-instagram"></i> Instagram</a>
+            <a href="#" class="text-white"><i class="fas fa-blog"></i> Blog</a>
         </div>
-    </footer>
+    </div>
+</footer>
 </body>
 </html>

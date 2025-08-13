@@ -8,10 +8,10 @@ auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """Đăng nhập"""
-    # Nếu đã đăng nhập, chuyển về trang chủ
+    """Đăng nhập hoặc chuyển đến profile nếu đã đăng nhập"""
+    # Nếu đã đăng nhập, chuyển đến trang profile
     if 'user_id' in session:
-        return redirect(url_for('index'))
+        return redirect(url_for('auth.profile'))
 
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -40,13 +40,47 @@ def login():
     return render_template('login.html')
 
 
+@auth_bp.route('/profile')
+def profile():
+    """Trang thông tin cá nhân"""
+    if 'user_id' not in session:
+        flash('Vui lòng đăng nhập để xem thông tin cá nhân!', 'warning')
+        return redirect(url_for('auth.login'))
+
+    try:
+        # Lấy thông tin chi tiết user từ database
+        tai_khoan = TaiKhoan.query.get(session['user_id'])
+        dang_nhap = DangNhap.query.filter_by(MaTaiKhoan=session['user_id']).first()
+
+        if not tai_khoan:
+            flash('Không tìm thấy thông tin tài khoản!', 'error')
+            return redirect(url_for('index'))
+
+        user_info = {
+            'full_name': f"{tai_khoan.Ho} {tai_khoan.Ten}" if tai_khoan.Ho and tai_khoan.Ten else session.get('full_name'),
+            'username': session.get('username'),
+            'email': dang_nhap.DiaChiEmail if dang_nhap else None,
+            'phone': tai_khoan.SoDienThoai,
+            'birth_date': tai_khoan.NgaySinh.strftime('%d/%m/%Y') if tai_khoan.NgaySinh else None,
+            'gender': 'Nam' if tai_khoan.GioiTinh == 'M' else 'Nữ' if tai_khoan.GioiTinh == 'F' else tai_khoan.GioiTinh,
+            'address': tai_khoan.DiaChi,
+            'citizen_id': tai_khoan.MaCanCuoc
+        }
+
+        return render_template('profile.html', user=user_info)
+
+    except Exception as e:
+        flash(f'Có lỗi xảy ra: {str(e)}', 'error')
+        return redirect(url_for('index'))
+
+
 @auth_bp.route('/logout')
 def logout():
     """Đăng xuất"""
     username = session.get('username', 'Người dùng')
     session.clear()
     flash(f'Tạm biệt {username}! Đã đăng xuất thành công.', 'info')
-    return redirect(url_for('main.index'))
+    return redirect(url_for('index'))  # Sửa thành 'index' thay vì 'main.index'
 
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
@@ -54,7 +88,7 @@ def register():
     """Đăng ký tài khoản"""
     # Nếu đã đăng nhập, chuyển về trang chủ
     if 'user_id' in session:
-        return redirect(url_for('main.index'))
+        return redirect(url_for('index'))  # Sửa thành 'index' thay vì 'main.index'
 
     if request.method == 'POST':
         # Lấy dữ liệu từ form
@@ -136,38 +170,3 @@ def forgot_password():
         return render_template('verify_code.html')
 
     return render_template('forgot_password.html')
-
-
-@auth_bp.route('/profile')
-def profile():
-    """Trang thông tin cá nhân"""
-    if 'user_id' not in session:
-        flash('Vui lòng đăng nhập để xem thông tin cá nhân!', 'warning')
-        return redirect(url_for('auth.login'))
-
-    try:
-        # Lấy thông tin chi tiết user từ database
-        tai_khoan = TaiKhoan.query.get(session['user_id'])
-        dang_nhap = DangNhap.query.filter_by(MaTaiKhoan=session['user_id']).first()
-
-        if not tai_khoan:
-            flash('Không tìm thấy thông tin tài khoản!', 'error')
-            return redirect(url_for('index'))
-
-        user_info = {
-            'full_name': f"{tai_khoan.Ho} {tai_khoan.Ten}" if tai_khoan.Ho and tai_khoan.Ten else session.get(
-                'full_name'),
-            'username': session.get('username'),
-            'email': dang_nhap.DiaChiEmail if dang_nhap else None,
-            'phone': tai_khoan.SoDienThoai,
-            'birth_date': tai_khoan.NgaySinh.strftime('%d/%m/%Y') if tai_khoan.NgaySinh else None,
-            'gender': 'Nam' if tai_khoan.GioiTinh == 'M' else 'Nữ' if tai_khoan.GioiTinh == 'F' else tai_khoan.GioiTinh,
-            'address': tai_khoan.DiaChi,
-            'citizen_id': tai_khoan.MaCanCuoc
-        }
-
-        return render_template('profile.html', user=user_info)
-
-    except Exception as e:
-        flash(f'Có lỗi xảy ra: {str(e)}', 'error')
-        return redirect(url_for('index'))
