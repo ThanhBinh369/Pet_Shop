@@ -1,0 +1,147 @@
+{% extends 'layout/base.html' %}
+{% block title %}Products - Pet Shop{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Products</h1>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-muted">{{ products|length }} products found</span>
+        </div>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Search Products</label>
+                    <input type="text" class="form-control" id="search" name="search"
+                           value="{{ current_search }}" placeholder="Search by name, brand, description...">
+                </div>
+
+                <div class="col-md-3">
+                    <label for="category" class="form-label">Category</label>
+                    <select class="form-select" id="category" name="category">
+                        <option value="">All Categories</option>
+                        <option value="dog" {% if current_category == 'dog' %}selected{% endif %}>Dog</option>
+                        <option value="cat" {% if current_category == 'cat' %}selected{% endif %}>Cat</option>
+                        <option value="bird" {% if current_category == 'bird' %}selected{% endif %}>Bird</option>
+                        <option value="fish" {% if current_category == 'fish' %}selected{% endif %}>Fish</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="sort" class="form-label">Sort By</label>
+                    <select class="form-select" id="sort" name="sort">
+                        <option value="name" {% if current_sort == 'name' %}selected{% endif %}>Name (A-Z)</option>
+                        <option value="price_low" {% if current_sort == 'price_low' %}selected{% endif %}>Price (Low to
+                            High)
+                        </option>
+                        <option value="price_high" {% if current_sort == 'price_high' %}selected{% endif %}>Price (High
+                            to Low)
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-md-2 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Filter
+                    </button>
+                    <a href="{{ url_for('product.list_products') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-undo"></i> Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Products Grid -->
+    {% if products %}
+        <div class="row" id="products-grid">
+            {% for product in products %}
+                <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                    <div class="card h-100 product-card">
+                        <div class="card-body d-flex flex-column">
+                            <div class="mb-auto">
+                                <h5 class="card-title">{{ product.name }}</h5>
+                                <p class="text-muted small mb-2">
+                                    <i class="fas fa-tag"></i> {{ product.type.title() }}
+                                    {% if product.brand %}
+                                        | <i class="fas fa-award"></i> {{ product.brand }}
+                                    {% endif %}
+                                </p>
+                                <p class="card-text text-muted">
+                                    {{ product.description[:80] }}{% if product.description|length > 80 %}...{% endif %}
+                                </p>
+                            </div>
+
+                            <div class="mt-auto">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <span class="h5 text-primary mb-0">${{ "%.2f"|format(product.price) }}</span>
+                                    {% if product.quantity > 0 %}
+                                        <small class="text-success">
+                                            <i class="fas fa-check-circle"></i> In stock ({{ product.quantity }})
+                                        </small>
+                                    {% else %}
+                                        <small class="text-danger">
+                                            <i class="fas fa-times-circle"></i> Out of stock
+                                        </small>
+                                    {% endif %}
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <a href="{{ url_for('product.product_detail', product_id=product.id) }}"
+                                       class="btn btn-outline-primary btn-sm flex-grow-1">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+
+                                    {% if product.quantity > 0 %}
+                                        {% if is_logged_in %}
+                                            <button class="btn btn-primary btn-sm add-to-cart"
+                                                    data-id="{{ product.id }}">
+                                                <i class="fas fa-cart-plus"></i> Add
+                                            </button>
+                                        {% else %}
+                                            <a href="{{ url_for('auth.login') }}"
+                                               class="btn btn-primary btn-sm">
+                                                <i class="fas fa-sign-in-alt"></i> Login
+                                            </a>
+                                        {% endif %}
+                                    {% else %}
+                                        <button class="btn btn-secondary btn-sm" disabled>
+                                            <i class="fas fa-ban"></i> N/A
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination placeholder -->
+        <div class="row mt-4">
+            <div class="col-12 text-center">
+                <nav aria-label="Products pagination">
+                    <!-- Pagination will be implemented later if needed -->
+                </nav>
+            </div>
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <h4>No products found</h4>
+            <p class="text-muted">Try adjusting your search criteria or browse all products.</p>
+            <a href="{{ url_for('product.list_products') }}" class="btn btn-primary">
+                <i class="fas fa-th-large"></i> View All Products
+            </a>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+
+
+
+{% endblock %}

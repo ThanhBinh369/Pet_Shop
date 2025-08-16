@@ -67,19 +67,24 @@ class ProductService:
     def get_all_products():
         """Lấy tất cả sản phẩm"""
         try:
-            products = db.session.query(SanPham, Loai).join(Loai).filter(SanPham.TrangThai == 1).all()
-            return [
-                {
-                    'id': product.SanPham.MaSanPham,
-                    'name': product.SanPham.TenSanPham,
-                    'type': product.Loai.TenLoai.lower(),
-                    'brand': product.SanPham.ThungHieu or '',
-                    'price': float(product.SanPham.GiaBan) if product.SanPham.GiaBan else 0,
-                    'description': product.SanPham.MoTa or '',
-                    'quantity': product.SanPham.SoLuong
-                }
-                for product in products
-            ]
+            # Thử cách khác
+            products = db.session.query(SanPham).join(Loai, SanPham.MaLoai == Loai.MaLoai).filter(
+                SanPham.TrangThai == 1).all()
+
+            result = []
+            for product in products:
+                result.append({
+                    'id': product.MaSanPham,
+                    'name': product.TenSanPham,
+                    'type': product.loai.TenLoai.lower() if product.loai else 'unknown',
+                    'brand': product.ThungHieu or '',
+                    'price': float(product.GiaBan) if product.GiaBan else 0,
+                    'description': product.MoTa or '',
+                    'quantity': product.SoLuong
+                })
+
+            print(f"ProductService trả về {len(result)} sản phẩm")
+            return result
         except Exception as e:
             print(f"Error getting products: {e}")
             return []

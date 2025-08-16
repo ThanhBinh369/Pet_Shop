@@ -4,17 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Pet Shop{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/static/css/custom.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/static/js/app.js"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Custom CSS - CHỈ LOAD MỘT LẦN -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+
+    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </head>
 <body>
 <!-- Navigation Bar -->
@@ -24,16 +30,16 @@
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
-        <!-- Navigation Section - chỉ cập nhật phần navigation -->
+
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a class="nav-link text-white" href="/">Home</a></li>
-                <li class="nav-item"><a class="nav-link text-white" href="/shop">Shop</a></li>
-                <li class="nav-item"><a class="nav-link text-white" href="/about">About Us</a></li>
-                <li class="nav-item"><a class="nav-link text-white" href="/contact">Contact Us</a></li>
+                <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('index') }}">Home</a></li>
+                <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('shop') }}">Products</a></li>
+                <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('about') }}">About Us</a></li>
+                <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('contact') }}">Contact Us</a></li>
 
                 <!-- Conditional Login/Profile Button -->
-                {% if 'user_id' in session %}
+                {% if is_logged_in %}
                     <!-- User is logged in - show profile and logout -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button"
@@ -44,9 +50,7 @@
                             <li><a class="dropdown-item" href="{{ url_for('auth.profile') }}">
                                 <i class="bi bi-person"></i> Thông tin cá nhân
                             </a></li>
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li>
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">
                                 <i class="bi bi-box-arrow-right"></i> Đăng xuất
                             </a></li>
@@ -62,17 +66,25 @@
                 {% endif %}
 
                 <li class="nav-item">
-                    <a href="{{ url_for('cart') }}" class="btn btn-outline-light text-white">
-                        <i class="bi bi-cart"></i> Giỏ Hàng <span
-                            class="badge bg-warning text-dark">{{ cart|length if cart is defined else 0 }}</span>
+                    <a href="{{ url_for('cart') }}" class="btn btn-outline-light text-white position-relative">
+                        <i class="bi bi-cart"></i> Giỏ Hàng
+                        {% if cart_count > 0 %}
+                        <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark">
+                            {{ cart_count }}
+                        </span>
+                        {% else %}
+                        <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark" style="display: none;">
+                            0
+                        </span>
+                        {% endif %}
                     </a>
                 </li>
             </ul>
 
             <!-- Search Bar -->
-            <form class="d-flex ms-3" style="width: 33.33%; min-width: 200px;">
+            <form class="d-flex ms-3" method="GET" action="{{ url_for('shop') }}" style="width: 33.33%; min-width: 200px;">
                 <div class="input-group">
-                    <input class="form-control" type="search" placeholder="Tìm kiếm..." aria-label="Search">
+                    <input class="form-control" type="search" name="search" placeholder="Tìm kiếm..." aria-label="Search" value="{{ request.args.get('search', '') }}">
                     <button class="btn btn-outline-light" type="submit">
                         <i class="bi bi-search"></i>
                     </button>
@@ -82,10 +94,96 @@
     </div>
 </nav>
 
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="container mt-2">
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
 
 <!-- Main Content -->
 <div class="container mt-4">
-    {% block content %}{% endblock %}
+    {% block content %}
+    <!-- Nội dung mặc định cho trang chủ -->
+    <div class="hero-section text-center py-5 mb-5">
+        <h1 class="display-4 fw-bold text-primary">Welcome to Pet Shop</h1>
+        <p class="lead">Your one-stop shop for all pet needs</p>
+        <a href="{{ url_for('shop') }}" class="btn btn-primary btn-lg">Shop Now</a>
+    </div>
+
+    {% if products %}
+    <h2 class="mb-4">Featured Products</h2>
+    <div class="row">
+        {% for product in products[:8] %}
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            <div class="card h-100 product-card">
+                <div class="card-body d-flex flex-column">
+                    <div class="mb-auto">
+                        <h5 class="card-title">{{ product.name }}</h5>
+                        <p class="text-muted small mb-2">
+                            <i class="fas fa-tag"></i> {{ product.type.title() }}
+                            {% if product.brand %}
+                                | <i class="fas fa-award"></i> {{ product.brand }}
+                            {% endif %}
+                        </p>
+                        <p class="card-text text-muted">
+                            {{ product.description[:60] }}{% if product.description|length > 60 %}...{% endif %}
+                        </p>
+                    </div>
+
+                    <div class="mt-auto">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="h5 text-primary mb-0">${{ "%.2f"|format(product.price) }}</span>
+                            {% if product.quantity > 0 %}
+                                <small class="text-success">
+                                    <i class="fas fa-check-circle"></i> In stock
+                                </small>
+                            {% else %}
+                                <small class="text-danger">
+                                    <i class="fas fa-times-circle"></i> Out of stock
+                                </small>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('product_detail', product_id=product.id) }}"
+                               class="btn btn-outline-primary btn-sm flex-grow-1">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+
+                            {% if product.quantity > 0 %}
+                                {% if is_logged_in %}
+                                    <button class="btn btn-primary btn-sm add-to-cart"
+                                            data-id="{{ product.id }}">
+                                        <i class="fas fa-cart-plus"></i> Add
+                                    </button>
+                                {% else %}
+                                    <a href="{{ url_for('auth.login') }}"
+                                       class="btn btn-primary btn-sm">
+                                        <i class="fas fa-sign-in-alt"></i> Login
+                                    </a>
+                                {% endif %}
+                            {% else %}
+                                <button class="btn btn-secondary btn-sm" disabled>
+                                    <i class="fas fa-ban"></i> N/A
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endblock %}
 </div>
 
 <!-- Footer -->
@@ -101,5 +199,10 @@
         </div>
     </div>
 </footer>
+
+<!-- Custom JS - CHỈ LOAD MỘT LẦN -->
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+{% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -8,6 +8,21 @@ product_bp = Blueprint('product', __name__)
 @product_bp.route('/products')
 def list_products():
     """Danh sách tất cả sản phẩm"""
+
+    # DEBUG: Kiểm tra dữ liệu
+    from models.models import SanPham, Loai
+    print("=== DEBUG INFO ===")
+    san_phams = SanPham.query.all()
+    print(f"Tổng số sản phẩm trong DB: {len(san_phams)}")
+    for sp in san_phams[:3]:  # In 3 sản phẩm đầu
+        print(f"ID: {sp.MaSanPham}, Tên: {sp.TenSanPham}, Trạng thái: {sp.TrangThai}")
+
+    loais = Loai.query.all()
+    print(f"Tổng số loại: {len(loais)}")
+    for loai in loais:
+        print(f"Loại ID: {loai.MaLoai}, Tên: {loai.TenLoai}")
+    print("=== END DEBUG ===")
+
     # Lấy parameters từ query string
     category = request.args.get('category', '')
     search = request.args.get('search', '')
@@ -35,7 +50,8 @@ def list_products():
     else:  # sort by name
         products.sort(key=lambda x: x['name'])
 
-    return render_template('products/list.html',
+    # SỬA: Đổi từ 'products/list.html' thành 'products.html'
+    return render_template('products.html',
                            products=products,
                            current_category=category,
                            current_search=search,
@@ -56,7 +72,8 @@ def product_detail(product_id):
     related_products = [p for p in all_products
                         if p['type'] == product['type'] and p['id'] != product_id][:4]
 
-    return render_template('products/detail.html',
+    # SỬA: Đổi từ 'products/detail.html' thành 'detail_product.html'
+    return render_template('detail_product.html',
                            product=product,
                            related_products=related_products)
 

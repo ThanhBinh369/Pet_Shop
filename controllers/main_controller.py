@@ -14,7 +14,7 @@ def index():
 def shop():
     """Trang shop"""
     products = ProductService.get_all_products()
-    return render_template('layout/shop.html', products=products)
+    return render_template('layout/products.html', products=products)
 
 @main_bp.route('/about')
 def about():

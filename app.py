@@ -3,11 +3,16 @@ from flask_sqlalchemy import SQLAlchemy
 from config import Config
 from models import db, TaiKhoan, DangNhap, SanPham, Loai
 from services import AuthService, ProductService, CartService, OrderService
+
 # Import controllers
 try:
     from controllers.auth_controller import auth_bp
+    from controllers.product_controller import product_bp
+    from controllers.cart_controller import cart_bp
+    from controllers.main_controller import main_bp
 except ImportError:
     from auth_controller import auth_bp
+    # Nếu không có các controller khác, comment lại
 
 import os
 
@@ -24,6 +29,11 @@ db.init_app(app)
 
 # Đăng ký blueprints
 app.register_blueprint(auth_bp)
+# Đăng ký product blueprint nếu có
+try:
+    app.register_blueprint(product_bp)
+except:
+    pass
 
 # Tạo bảng nếu chưa tồn tại
 with app.app_context():
@@ -41,11 +51,61 @@ def index():
     return render_template('layout/base.html', products=products)
 
 
-# Route shop
-@app.route('/shop')
+# Route shop - SỬA LẠI ĐỂ DÙNG ĐÚNG TEMPLATE
+@app.route('/products')
 def shop():
+    # Lấy parameters từ query string
+    category = request.args.get('category', '')
+    search = request.args.get('search', '')
+    sort_by = request.args.get('sort', 'name')
+
     products = ProductService.get_all_products()
-    return render_template('layout/shop.html', products=products)
+
+    # Filter theo category
+    if category:
+        products = [p for p in products if p['type'].lower() == category.lower()]
+
+    # Filter theo search
+    if search:
+        search_lower = search.lower()
+        products = [p for p in products if
+                    search_lower in p['name'].lower() or
+                    search_lower in p['brand'].lower() or
+                    search_lower in p['description'].lower()]
+
+    # Sorting
+    if sort_by == 'price_low':
+        products.sort(key=lambda x: x['price'])
+    elif sort_by == 'price_high':
+        products.sort(key=lambda x: x['price'], reverse=True)
+    else:  # sort by name
+        products.sort(key=lambda x: x['name'])
+
+    return render_template('products.html',  # SỬA: Dùng products.html thay vì layout/products.html
+                           products=products,
+                           current_category=category,
+                           current_search=search,
+                           current_sort=sort_by)
+
+
+# Route chi tiết sản phẩm
+@app.route('/product/<int:product_id>')
+def product_detail(product_id):
+    """Chi tiết sản phẩm"""
+    product = ProductService.get_product_by_id(product_id)
+
+    if not product:
+        flash('Sản phẩm không tồn tại!', 'error')
+        return redirect(url_for('shop'))
+
+    # Lấy sản phẩm liên quan (cùng loại)
+    all_products = ProductService.get_all_products()
+    related_products = [p for p in all_products
+                        if p['type'] == product['type'] and p['id'] != product_id][:4]
+
+    return render_template('detail_product.html',
+                           product=product,
+                           related_products=related_products)
 
 
 # Route about
@@ -90,7 +150,15 @@ def add_to_cart():
         success, message = CartService.add_to_cart(session['user_id'], product_id, quantity)
 
         if success:
-            return jsonify({'success': True, 'message': message})
+            # Lấy số lượng cart hiện tại để trả về
+            cart_items = CartService.get_cart_items(session['user_id'])
+            cart_count = sum(item['quantity'] for item in cart_items)
+
+            return jsonify({
+                'success': True,
+                'message': message,
+                'cart_count': cart_count
+            })
         else:
             return jsonify({'success': False, 'message': message}), 400
 
@@ -114,12 +182,21 @@ def checkout():
     return render_template('checkout.html', cart_items=cart_items, total=total)
 
 
-# Helper function để kiểm tra đăng nhập
+# Helper function để kiểm tra đăng nhập và thêm thông tin cart
 @app.context_processor
 def inject_user():
+    cart_count = 0
+    if 'user_id' in session:
+        try:
+            cart_items = CartService.get_cart_items(session['user_id'])
+            cart_count = sum(item['quantity'] for item in cart_items)
+        except:
+            cart_count = 0
+
     return dict(
         current_user=session.get('full_name'),
-        is_logged_in='user_id' in session
+        is_logged_in='user_id' in session,
+        cart_count=cart_count
     )
 
 
