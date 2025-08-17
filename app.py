@@ -8,7 +8,7 @@ from services import AuthService, ProductService, CartService, OrderService
 try:
     from controllers.auth_controller import auth_bp
     from controllers.product_controller import product_bp
-    from controllers.cart_controller import cart_bp
+    from controllers.cart_controller import cart_bp  # THÊM DÒNG NÀY
     from controllers.main_controller import main_bp
 except ImportError:
     from auth_controller import auth_bp
@@ -32,6 +32,8 @@ app.register_blueprint(auth_bp)
 # Đăng ký product blueprint nếu có
 try:
     app.register_blueprint(product_bp)
+    app.register_blueprint(cart_bp)
+    app.register_blueprint(main_bp)
 except:
     pass
 

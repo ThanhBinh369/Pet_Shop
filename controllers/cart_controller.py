@@ -137,8 +137,12 @@ def update_cart():
         # Nếu quantity = 0 thì xóa khỏi giỏ hàng
         if quantity == 0:
             success, message = CartService.remove_from_cart(session['user_id'], product_id)
+            item_subtotal = 0
         else:
             success, message = CartService.update_cart_item(session['user_id'], product_id, quantity)
+            # THÊM: Tính subtotal cho item này
+            product = ProductService.get_product_by_id(product_id)
+            item_subtotal = float(product['price']) * quantity if product else 0
 
         if success:
             # Tính lại total
@@ -149,7 +153,8 @@ def update_cart():
                 'success': True,
                 'message': message,
                 'total': total,
-                'cart_count': len(cart_items)
+                'cart_count': len(cart_items),
+                'item_subtotal': item_subtotal  # THÊM DÒNG NÀY
             })
         else:
             return jsonify({
@@ -162,7 +167,6 @@ def update_cart():
             'success': False,
             'message': f'Lỗi: {str(e)}'
         }), 500
-
 
 @cart_bp.route('/remove-from-cart', methods=['POST'])
 def remove_from_cart():

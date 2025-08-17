@@ -220,6 +220,80 @@ class CartService:
         except Exception as e:
             print(f"Error updating cart total: {e}")
 
+    @staticmethod
+    def remove_from_cart(ma_tai_khoan, ma_san_pham):
+        """Xóa sản phẩm khỏi giỏ hàng"""
+        try:
+            cart = GioHang.query.filter_by(MaTaiKhoan=ma_tai_khoan).first()
+            if not cart:
+                return False, "Không tìm thấy giỏ hàng"
+
+            cart_item = GioHang_SanPham.query.filter_by(
+                MaGioHang=cart.MaGioHang,
+                MaSanPham=ma_san_pham
+            ).first()
+
+            if not cart_item:
+                return False, "Sản phẩm không có trong giỏ hàng"
+
+            db.session.delete(cart_item)
+
+            # Cập nhật tổng số lượng
+            CartService.update_cart_total(cart.MaGioHang)
+
+            db.session.commit()
+            return True, "Đã xóa sản phẩm khỏi giỏ hàng"
+
+        except Exception as e:
+            db.session.rollback()
+            return False, f"Lỗi: {str(e)}"
+
+    @staticmethod
+    def update_cart_item(ma_tai_khoan, ma_san_pham, so_luong):
+        """Cập nhật số lượng sản phẩm trong giỏ hàng"""
+        try:
+            cart = GioHang.query.filter_by(MaTaiKhoan=ma_tai_khoan).first()
+            if not cart:
+                return False, "Không tìm thấy giỏ hàng"
+
+            cart_item = GioHang_SanPham.query.filter_by(
+                MaGioHang=cart.MaGioHang,
+                MaSanPham=ma_san_pham
+            ).first()
+
+            if not cart_item:
+                return False, "Sản phẩm không có trong giỏ hàng"
+
+            cart_item.SoLuong = so_luong
+
+            # Cập nhật tổng số lượng
+            CartService.update_cart_total(cart.MaGioHang)
+
+            db.session.commit()
+            return True, "Đã cập nhật số lượng"
+
+        except Exception as e:
+            db.session.rollback()
+            return False, f"Lỗi: {str(e)}"
+
+    @staticmethod
+    def clear_cart(ma_tai_khoan):
+        """Xóa toàn bộ giỏ hàng"""
+        try:
+            cart = GioHang.query.filter_by(MaTaiKhoan=ma_tai_khoan).first()
+            if not cart:
+                return False, "Không tìm thấy giỏ hàng"
+
+            GioHang_SanPham.query.filter_by(MaGioHang=cart.MaGioHang).delete()
+            cart.TongSoLuong = 0
+
+            db.session.commit()
+            return True, "Đã xóa toàn bộ giỏ hàng"
+
+        except Exception as e:
+            db.session.rollback()
+            return False, f"Lỗi: {str(e)}"
+
 
 class OrderService:
     @staticmethod
