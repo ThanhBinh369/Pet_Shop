@@ -140,7 +140,7 @@
 
                     <div class="mt-auto">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span class="h5 text-primary mb-0">${{ "%.2f"|format(product.price) }}</span>
+                            <span class="h5 text-primary mb-0">{{ "{:,.0f}".format(product.price) }} đ</span>
                             {% if product.quantity > 0 %}
                                 <small class="text-success">
                                     <i class="fas fa-check-circle"></i> In stock

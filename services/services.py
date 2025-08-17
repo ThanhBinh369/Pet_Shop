@@ -76,7 +76,7 @@ class ProductService:
                 result.append({
                     'id': product.MaSanPham,
                     'name': product.TenSanPham,
-                    'type': product.loai.TenLoai.lower() if product.loai else 'unknown',
+                    'type': product.loai.TenLoai if product.loai else 'unknown',
                     'brand': product.ThungHieu or '',
                     'price': float(product.GiaBan) if product.GiaBan else 0,
                     'description': product.MoTa or '',
@@ -101,7 +101,7 @@ class ProductService:
                 return {
                     'id': product.SanPham.MaSanPham,
                     'name': product.SanPham.TenSanPham,
-                    'type': product.Loai.TenLoai.lower(),
+                    'type': product.Loai.TenLoai,
                     'brand': product.SanPham.ThungHieu or '',
                     'price': float(product.SanPham.GiaBan) if product.SanPham.GiaBan else 0,
                     'description': product.SanPham.MoTa or '',
@@ -191,9 +191,12 @@ class CartService:
             return [
                 {
                     'id': item.SanPham.MaSanPham,
-                    'name': f"{item.SanPham.TenSanPham} - {item.SanPham.ThungHieu or ''}",
+                    'name': item.SanPham.TenSanPham,
+                    'brand': item.SanPham.ThungHieu or '',
+                    'category': item.SanPham.loai.TenLoai if item.SanPham.loai else '',
                     'price': float(item.SanPham.GiaBan) if item.SanPham.GiaBan else 0,
-                    'quantity': item.GioHang_SanPham.SoLuong
+                    'quantity': item.GioHang_SanPham.SoLuong,
+                    'image': '/static/images/products/default.jpg'  # Thêm ảnh mặc định
                 }
                 for item in cart_items
             ]
