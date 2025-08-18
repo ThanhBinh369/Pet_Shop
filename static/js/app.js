@@ -23,12 +23,219 @@ $('.list-group-item').click(function (e) {
 
 // Edit profile button
 $(document).on('click', '.btn:contains("Chỉnh sửa")', function () {
+    // Lấy thông tin hiện tại từ trang
+    const currentData = {
+        ho: $('.profile-ho').text().trim() || '',
+        ten: $('.profile-ten').text().trim() || '',
+        phone: $('.profile-phone').text().trim() || '',
+        birth_date: $('.profile-birth-date').attr('data-value') || '',
+        gender: $('.profile-gender').attr('data-value') || '',
+        address: $('.profile-address').text().trim() || ''
+    };
+
     Swal.fire({
-        title: 'Thông báo!',
-        text: 'Chức năng chỉnh sửa thông tin đang được phát triển.',
-        icon: 'info',
+        title: 'Chỉnh sửa thông tin cá nhân',
+        html: `
+            <div class="text-start">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Họ *</label>
+                            <input type="text" class="form-control" id="editHo" value="${currentData.ho}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tên *</label>
+                            <input type="text" class="form-control" id="editTen" value="${currentData.ten}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Số điện thoại</label>
+                            <input type="tel" class="form-control" id="editPhone" value="${currentData.phone}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Ngày sinh</label>
+                            <input type="date" class="form-control" id="editBirthDate" value="${currentData.birth_date}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Giới tính</label>
+                            <select class="form-control" id="editGender">
+                                <option value="">Chọn giới tính</option>
+                                <option value="1" ${currentData.gender === '1' ? 'selected' : ''}>Nam</option>
+                                <option value="0" ${currentData.gender === '0' ? 'selected' : ''}>Nữ</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Địa chỉ</label>
+                            <textarea class="form-control" id="editAddress" rows="3">${currentData.address}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `,
+        width: '600px',
+        showCancelButton: true,
+        confirmButtonText: 'Cập nhật',
+        cancelButtonText: 'Hủy',
         confirmButtonColor: '#f28c38',
-        timer: 2000
+        cancelButtonColor: '#6c757d',
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+            const ho = $('#editHo').val().trim();
+            const ten = $('#editTen').val().trim();
+            const phone = $('#editPhone').val().trim();
+            const birth_date = $('#editBirthDate').val();
+            const gender = $('#editGender').val();
+            const address = $('#editAddress').val().trim();
+
+            if (!ho || !ten) {
+                Swal.showValidationMessage('Họ và tên không được để trống');
+                return false;
+            }
+
+            if (phone && (!/^\d+$/.test(phone) || phone.length < 10)) {
+                Swal.showValidationMessage('Số điện thoại không hợp lệ');
+                return false;
+            }
+
+            return fetch('/update-profile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ho: ho,
+                    ten: ten,
+                    phone: phone,
+                    birth_date: birth_date,
+                    gender: gender,
+                    address: address
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.message);
+                }
+                return data;
+            })
+            .catch(error => {
+                Swal.showValidationMessage(error.message);
+                return false;
+            });
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
+            Swal.fire({
+                title: 'Thành công!',
+                text: 'Thông tin đã được cập nhật.',
+                icon: 'success',
+                confirmButtonColor: '#f28c38'
+            }).then(() => {
+                location.reload(); // Reload trang để hiển thị thông tin mới
+            });
+        }
+    });
+});
+
+// Add new address button
+$(document).on('click', '.btn:contains("Thêm địa chỉ mới")', function () {
+    Swal.fire({
+        title: 'Thêm địa chỉ mới',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">Tên người nhận *</label>
+                    <input type="text" class="form-control" id="addTenNguoiNhan" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Số điện thoại *</label>
+                    <input type="tel" class="form-control" id="addSoDienThoai" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Địa chỉ chi tiết *</label>
+                    <textarea class="form-control" id="addDiaChi" rows="2" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Quận/Huyện *</label>
+                    <input type="text" class="form-control" id="addQuanHuyen" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Tỉnh/Thành phố *</label>
+                    <input type="text" class="form-control" id="addTinhThanh" required>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="addMacDinh">
+                    <label class="form-check-label" for="addMacDinh">
+                        Đặt làm địa chỉ mặc định
+                    </label>
+                </div>
+            </div>
+        `,
+        width: '500px',
+        showCancelButton: true,
+        confirmButtonText: 'Thêm địa chỉ',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#f28c38',
+        cancelButtonColor: '#6c757d',
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+            const ten_nguoi_nhan = $('#addTenNguoiNhan').val().trim();
+            const so_dien_thoai = $('#addSoDienThoai').val().trim();
+            const dia_chi = $('#addDiaChi').val().trim();
+            const quan_huyen = $('#addQuanHuyen').val().trim();
+            const tinh_thanh = $('#addTinhThanh').val().trim();
+            const mac_dinh = $('#addMacDinh').is(':checked');
+
+            if (!ten_nguoi_nhan || !so_dien_thoai || !dia_chi || !quan_huyen || !tinh_thanh) {
+                Swal.showValidationMessage('Vui lòng điền đầy đủ thông tin bắt buộc');
+                return false;
+            }
+
+            if (!/^\d+$/.test(so_dien_thoai) || so_dien_thoai.length < 10) {
+                Swal.showValidationMessage('Số điện thoại không hợp lệ');
+                return false;
+            }
+
+            return fetch('/add-address', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ten_nguoi_nhan: ten_nguoi_nhan,
+                    so_dien_thoai: so_dien_thoai,
+                    dia_chi: dia_chi,
+                    quan_huyen: quan_huyen,
+                    tinh_thanh: tinh_thanh,
+                    mac_dinh: mac_dinh
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.message);
+                }
+                return data;
+            })
+            .catch(error => {
+                Swal.showValidationMessage(error.message);
+                return false;
+            });
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
+            Swal.fire({
+                title: 'Thành công!',
+                text: 'Địa chỉ đã được thêm.',
+                icon: 'success',
+                confirmButtonColor: '#f28c38'
+            }).then(() => {
+                location.reload(); // Reload trang để hiển thị địa chỉ mới
+            });
+        }
     });
 });
 
@@ -57,6 +264,7 @@ $(document).on('click', '.btn:contains("Đổi mật khẩu")', function () {
         cancelButtonText: 'Hủy',
         confirmButtonColor: '#f28c38',
         cancelButtonColor: '#6c757d',
+        showLoaderOnConfirm: true,
         preConfirm: () => {
             const current = $('#currentPassword').val();
             const newPass = $('#newPassword').val();
@@ -77,11 +285,32 @@ $(document).on('click', '.btn:contains("Đổi mật khẩu")', function () {
                 return false;
             }
 
-            return {current, newPass};
-        }
+            // Gửi request đổi mật khẩu
+            return fetch('/change-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    current_password: current,
+                    new_password: newPass
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.message);
+                }
+                return data;
+            })
+            .catch(error => {
+                Swal.showValidationMessage(error.message);
+                return false;
+            });
+        },
+        allowOutsideClick: () => !Swal.isLoading()
     }).then((result) => {
-        if (result.isConfirmed) {
-            // TODO: Implement actual password change logic
+        if (result.isConfirmed && result.value) {
             Swal.fire({
                 title: 'Thành công!',
                 text: 'Mật khẩu đã được thay đổi.',

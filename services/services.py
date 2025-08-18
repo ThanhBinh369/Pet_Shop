@@ -61,6 +61,109 @@ class AuthService:
         except Exception as e:
             return False, f"Lỗi: {str(e)}"
 
+    @staticmethod
+    def change_password(ma_tai_khoan, current_password, new_password):
+        """Đổi mật khẩu"""
+        try:
+            # Lấy thông tin đăng nhập
+            dang_nhap = DangNhap.query.filter_by(MaTaiKhoan=ma_tai_khoan, TrangThai=1).first()
+
+            if not dang_nhap:
+                return False, "Không tìm thấy tài khoản"
+
+            # Kiểm tra mật khẩu hiện tại
+            if not check_password_hash(dang_nhap.MatKhau, current_password):
+                return False, "Mật khẩu hiện tại không đúng"
+
+            # Cập nhật mật khẩu mới
+            dang_nhap.MatKhau = generate_password_hash(new_password)
+            db.session.commit()
+
+            return True, "Đổi mật khẩu thành công"
+
+        except Exception as e:
+            db.session.rollback()
+            return False, f"Lỗi: {str(e)}"
+
+    @staticmethod
+    def update_profile(ma_tai_khoan, ho, ten, so_dien_thoai, ngay_sinh, gioi_tinh, dia_chi):
+        """Cập nhật thông tin cá nhân"""
+        try:
+            tai_khoan = TaiKhoan.query.get(ma_tai_khoan)
+            if not tai_khoan:
+                return False, "Không tìm thấy tài khoản"
+
+            # Cập nhật thông tin
+            tai_khoan.Ho = ho
+            tai_khoan.Ten = ten
+            tai_khoan.SoDienThoai = so_dien_thoai
+            tai_khoan.DiaChi = dia_chi
+            tai_khoan.GioiTinh = gioi_tinh
+
+            # Xử lý ngày sinh
+            if ngay_sinh:
+                try:
+                    tai_khoan.NgaySinh = datetime.strptime(ngay_sinh, '%Y-%m-%d').date()
+                except:
+                    tai_khoan.NgaySinh = None
+
+            db.session.commit()
+            return True, "Cập nhật thông tin thành công"
+
+        except Exception as e:
+            db.session.rollback()
+            return False, f"Lỗi: {str(e)}"
+
+    @staticmethod
+    def add_address(ma_tai_khoan, ten_nguoi_nhan, so_dien_thoai, dia_chi, quan_huyen, tinh_thanh, mac_dinh=False):
+        """Thêm địa chỉ mới"""
+        try:
+            # Nếu đặt làm địa chỉ mặc định, bỏ mặc định của các địa chỉ khác
+            if mac_dinh:
+                DiaChi.query.filter_by(MaTaiKhoan=ma_tai_khoan).update({'DiaChiMacDinh': 0})
+
+            # Tạo địa chỉ mới
+            dia_chi_moi = DiaChi(
+                MaTaiKhoan=ma_tai_khoan,
+                TenNguoiNhan=ten_nguoi_nhan,
+                SoDienThoai=so_dien_thoai,
+                DiaChi=dia_chi,
+                QuanHuyen=quan_huyen,
+                TinhThanh=tinh_thanh,
+                DiaChiMacDinh=1 if mac_dinh else 0
+            )
+
+            db.session.add(dia_chi_moi)
+            db.session.commit()
+
+            return True, "Thêm địa chỉ thành công"
+
+        except Exception as e:
+            db.session.rollback()
+            return False, f"Lỗi: {str(e)}"
+
+    @staticmethod
+    def get_user_addresses(ma_tai_khoan):
+        """Lấy danh sách địa chỉ của user"""
+        try:
+            addresses = DiaChi.query.filter_by(MaTaiKhoan=ma_tai_khoan).all()
+            return [
+                {
+                    'id': addr.MaDiaChi,
+                    'ten_nguoi_nhan': addr.TenNguoiNhan,
+                    'so_dien_thoai': addr.SoDienThoai,
+                    'dia_chi': addr.DiaChi,
+                    'quan_huyen': addr.QuanHuyen,
+                    'tinh_thanh': addr.TinhThanh,
+                    'mac_dinh': bool(addr.DiaChiMacDinh),
+                    'dia_chi_day_du': f"{addr.DiaChi}, {addr.QuanHuyen}, {addr.TinhThanh}"
+                }
+                for addr in addresses
+            ]
+        except Exception as e:
+            print(f"Error getting addresses: {e}")
+            return []
+
 
 class ProductService:
     @staticmethod

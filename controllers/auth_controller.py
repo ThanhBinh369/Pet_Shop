@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from services import AuthService
 from models import TaiKhoan, DangNhap
 
@@ -57,22 +57,30 @@ def profile():
             return redirect(url_for('index'))
 
         user_info = {
-            'full_name': f"{tai_khoan.Ho} {tai_khoan.Ten}" if tai_khoan.Ho and tai_khoan.Ten else session.get('full_name'),
+            'full_name': f"{tai_khoan.Ho} {tai_khoan.Ten}" if tai_khoan.Ho and tai_khoan.Ten else session.get(
+                'full_name'),
+            'ho': tai_khoan.Ho,
+            'ten': tai_khoan.Ten,
             'username': session.get('username'),
             'email': dang_nhap.DiaChiEmail if dang_nhap else None,
             'phone': tai_khoan.SoDienThoai,
-            'birth_date': tai_khoan.NgaySinh.strftime('%d/%m/%Y') if tai_khoan.NgaySinh else None,
-            'gender': 'Nam' if tai_khoan.GioiTinh == 'M' else 'Nữ' if tai_khoan.GioiTinh == 'F' else tai_khoan.GioiTinh,
+            'birth_date': tai_khoan.NgaySinh.strftime('%Y-%m-%d') if tai_khoan.NgaySinh else None,
+            'birth_date_display': tai_khoan.NgaySinh.strftime('%d/%m/%Y') if tai_khoan.NgaySinh else None,
+            'gender': 'Nam' if str(tai_khoan.GioiTinh) == '1' else 'Nữ' if str(
+                tai_khoan.GioiTinh) == '0' else 'Chưa cập nhật',
+            'gender_value': tai_khoan.GioiTinh,
             'address': tai_khoan.DiaChi,
             'citizen_id': tai_khoan.MaCanCuoc
         }
 
-        return render_template('profile.html', user=user_info)
+        # Lấy danh sách địa chỉ
+        addresses = AuthService.get_user_addresses(session['user_id'])
+
+        return render_template('profile.html', user=user_info, addresses=addresses)
 
     except Exception as e:
         flash(f'Có lỗi xảy ra: {str(e)}', 'error')
         return redirect(url_for('index'))
-
 
 @auth_bp.route('/logout')
 def logout():
@@ -80,7 +88,7 @@ def logout():
     username = session.get('username', 'Người dùng')
     session.clear()
     flash(f'Tạm biệt {username}! Đã đăng xuất thành công.', 'info')
-    return redirect(url_for('index'))  # Sửa thành 'index' thay vì 'main.index'
+    return redirect(url_for('index'))
 
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
@@ -170,3 +178,111 @@ def forgot_password():
         return render_template('verify_code.html')
 
     return render_template('forgot_password.html')
+
+
+@auth_bp.route('/change-password', methods=['POST'])
+def change_password():
+    """Đổi mật khẩu"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập!'}), 401
+
+    try:
+        data = request.get_json()
+        current_password = data.get('current_password', '').strip()
+        new_password = data.get('new_password', '').strip()
+
+        # Validate input
+        if not current_password or not new_password:
+            return jsonify({'success': False, 'message': 'Vui lòng điền đầy đủ thông tin!'}), 400
+
+        if len(new_password) < 6:
+            return jsonify({'success': False, 'message': 'Mật khẩu mới phải có ít nhất 6 ký tự!'}), 400
+
+        # Thực hiện đổi mật khẩu
+        success, message = AuthService.change_password(session['user_id'], current_password, new_password)
+
+        if success:
+            return jsonify({'success': True, 'message': message})
+        else:
+            return jsonify({'success': False, 'message': message}), 400
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Có lỗi xảy ra: {str(e)}'}), 500
+
+
+@auth_bp.route('/update-profile', methods=['POST'])
+def update_profile():
+    """Cập nhật thông tin cá nhân"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập!'}), 401
+
+    try:
+        data = request.get_json()
+
+        # Lấy thông tin từ request
+        ho = data.get('ho', '').strip()
+        ten = data.get('ten', '').strip()
+        phone = data.get('phone', '').strip()
+        birth_date = data.get('birth_date', '').strip()
+        gender = data.get('gender', '').strip()
+        address = data.get('address', '').strip()
+
+        # Validate
+        if not ho or not ten:
+            return jsonify({'success': False, 'message': 'Họ và tên không được để trống!'}), 400
+
+        if phone and (not phone.isdigit() or len(phone) < 10):
+            return jsonify({'success': False, 'message': 'Số điện thoại không hợp lệ!'}), 400
+
+        # Cập nhật thông tin
+        success, message = AuthService.update_profile(
+            session['user_id'], ho, ten, phone, birth_date, gender, address
+        )
+
+        if success:
+            # Cập nhật session
+            session['full_name'] = f"{ho} {ten}"
+            return jsonify({'success': True, 'message': message})
+        else:
+            return jsonify({'success': False, 'message': message}), 400
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Có lỗi xảy ra: {str(e)}'}), 500
+
+
+@auth_bp.route('/add-address', methods=['POST'])
+def add_address():
+    """Thêm địa chỉ mới"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập!'}), 401
+
+    try:
+        data = request.get_json()
+
+        ten_nguoi_nhan = data.get('ten_nguoi_nhan', '').strip()
+        so_dien_thoai = data.get('so_dien_thoai', '').strip()
+        dia_chi = data.get('dia_chi', '').strip()
+        quan_huyen = data.get('quan_huyen', '').strip()
+        tinh_thanh = data.get('tinh_thanh', '').strip()
+        mac_dinh = data.get('mac_dinh', False)
+
+        # Validate
+        if not all([ten_nguoi_nhan, so_dien_thoai, dia_chi, quan_huyen, tinh_thanh]):
+            return jsonify({'success': False, 'message': 'Vui lòng điền đầy đủ thông tin!'}), 400
+
+        if not so_dien_thoai.isdigit() or len(so_dien_thoai) < 10:
+            return jsonify({'success': False, 'message': 'Số điện thoại không hợp lệ!'}), 400
+
+        # Thêm địa chỉ
+        success, message = AuthService.add_address(
+            session['user_id'], ten_nguoi_nhan, so_dien_thoai,
+            dia_chi, quan_huyen, tinh_thanh, mac_dinh
+        )
+
+        if success:
+            return jsonify({'success': True, 'message': message})
+        else:
+            return jsonify({'success': False, 'message': message}), 400
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Có lỗi xảy ra: {str(e)}'}), 500
