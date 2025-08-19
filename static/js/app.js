@@ -239,6 +239,174 @@ $(document).on('click', '.btn:contains("Thêm địa chỉ mới")', function ()
     });
 });
 
+// Edit address button
+$(document).on('click', '.edit-address', function () {
+    const addressId = $(this).data('id');
+    const addressCard = $(this).closest('.border');
+
+    // Lấy thông tin hiện tại từ card
+    const currentName = addressCard.find('h6').text().replace(/Mặc định/g, '').trim();
+    const currentPhone = addressCard.find('i.bi-telephone').parent().text().replace('📞', '').trim();
+    const addressText = addressCard.find('i.bi-geo-alt').parent().text().replace('📍', '').trim();
+    const isDefault = addressCard.hasClass('border-primary');
+
+    // Tách địa chỉ (giả sử format: "địa chỉ chi tiết, quận/huyện, tỉnh/thành")
+    const addressParts = addressText.split(', ');
+    const currentDiaChi = addressParts.slice(0, -2).join(', ') || '';
+    const currentQuanHuyen = addressParts[addressParts.length - 2] || '';
+    const currentTinhThanh = addressParts[addressParts.length - 1] || '';
+
+    Swal.fire({
+        title: 'Chỉnh sửa địa chỉ',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">Tên người nhận *</label>
+                    <input type="text" class="form-control" id="editTenNguoiNhan" value="${currentName}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Số điện thoại *</label>
+                    <input type="tel" class="form-control" id="editSoDienThoai" value="${currentPhone}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Địa chỉ chi tiết *</label>
+                    <textarea class="form-control" id="editDiaChi" rows="2" required>${currentDiaChi}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Quận/Huyện *</label>
+                    <input type="text" class="form-control" id="editQuanHuyen" value="${currentQuanHuyen}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Tỉnh/Thành phố *</label>
+                    <input type="text" class="form-control" id="editTinhThanh" value="${currentTinhThanh}" required>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="editMacDinh" ${isDefault ? 'checked' : ''}>
+                    <label class="form-check-label" for="editMacDinh">
+                        Đặt làm địa chỉ mặc định
+                    </label>
+                </div>
+            </div>
+        `,
+        width: '500px',
+        showCancelButton: true,
+        confirmButtonText: 'Cập nhật',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#f28c38',
+        cancelButtonColor: '#6c757d',
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+            const ten_nguoi_nhan = $('#editTenNguoiNhan').val().trim();
+            const so_dien_thoai = $('#editSoDienThoai').val().trim();
+            const dia_chi = $('#editDiaChi').val().trim();
+            const quan_huyen = $('#editQuanHuyen').val().trim();
+            const tinh_thanh = $('#editTinhThanh').val().trim();
+            const mac_dinh = $('#editMacDinh').is(':checked');
+
+            if (!ten_nguoi_nhan || !so_dien_thoai || !dia_chi || !quan_huyen || !tinh_thanh) {
+                Swal.showValidationMessage('Vui lòng điền đầy đủ thông tin bắt buộc');
+                return false;
+            }
+
+            if (!/^\d+$/.test(so_dien_thoai) || so_dien_thoai.length < 10) {
+                Swal.showValidationMessage('Số điện thoại không hợp lệ');
+                return false;
+            }
+
+            return fetch('/update-address', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    address_id: addressId,
+                    ten_nguoi_nhan: ten_nguoi_nhan,
+                    so_dien_thoai: so_dien_thoai,
+                    dia_chi: dia_chi,
+                    quan_huyen: quan_huyen,
+                    tinh_thanh: tinh_thanh,
+                    mac_dinh: mac_dinh
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.message);
+                }
+                return data;
+            })
+            .catch(error => {
+                Swal.showValidationMessage(error.message);
+                return false;
+            });
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
+            Swal.fire({
+                title: 'Thành công!',
+                text: 'Địa chỉ đã được cập nhật.',
+                icon: 'success',
+                confirmButtonColor: '#f28c38'
+            }).then(() => {
+                location.reload();
+            });
+        }
+    });
+});
+
+// Delete address button
+$(document).on('click', '.delete-address', function () {
+    const addressId = $(this).data('id');
+    const addressCard = $(this).closest('.border');
+    const addressName = addressCard.find('h6').text().replace(/Mặc định/g, '').trim();
+
+    Swal.fire({
+        title: 'Xác nhận xóa',
+        text: `Bạn có chắc chắn muốn xóa địa chỉ của "${addressName}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+            return fetch('/delete-address', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    address_id: addressId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.message);
+                }
+                return data;
+            })
+            .catch(error => {
+                Swal.showValidationMessage(error.message);
+                return false;
+            });
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
+            Swal.fire({
+                title: 'Thành công!',
+                text: 'Địa chỉ đã được xóa.',
+                icon: 'success',
+                confirmButtonColor: '#f28c38'
+            }).then(() => {
+                location.reload();
+            });
+        }
+    });
+});
 // Change password button
 $(document).on('click', '.btn:contains("Đổi mật khẩu")', function () {
     Swal.fire({
@@ -321,16 +489,6 @@ $(document).on('click', '.btn:contains("Đổi mật khẩu")', function () {
     });
 });
 
-// Add new address button
-$(document).on('click', '.btn:contains("Thêm địa chỉ mới")', function () {
-    Swal.fire({
-        title: 'Thông báo!',
-        text: 'Chức năng thêm địa chỉ đang được phát triển.',
-        icon: 'info',
-        confirmButtonColor: '#f28c38',
-        timer: 2000
-    });
-});
 
 document.addEventListener('DOMContentLoaded', function () {
     // Add to cart functionality

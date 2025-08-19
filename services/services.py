@@ -118,6 +118,10 @@ class AuthService:
     def add_address(ma_tai_khoan, ten_nguoi_nhan, so_dien_thoai, dia_chi, quan_huyen, tinh_thanh, mac_dinh=False):
         """Thêm địa chỉ mới"""
         try:
+            # Kiểm tra số lượng địa chỉ hiện có
+            current_count = DiaChi.query.filter_by(MaTaiKhoan=ma_tai_khoan).count()
+            if current_count >= 5:
+                return False, "Bạn chỉ có thể thêm tối đa 5 địa chỉ giao hàng"
             # Nếu đặt làm địa chỉ mặc định, bỏ mặc định của các địa chỉ khác
             if mac_dinh:
                 DiaChi.query.filter_by(MaTaiKhoan=ma_tai_khoan).update({'DiaChiMacDinh': 0})
@@ -137,6 +141,67 @@ class AuthService:
             db.session.commit()
 
             return True, "Thêm địa chỉ thành công"
+
+        except Exception as e:
+            db.session.rollback()
+            return False, f"Lỗi: {str(e)}"
+
+    @staticmethod
+    def update_address(ma_tai_khoan, address_id, ten_nguoi_nhan, so_dien_thoai, dia_chi, quan_huyen, tinh_thanh,
+                       mac_dinh=False):
+        """Cập nhật địa chỉ"""
+        try:
+            # Kiểm tra địa chỉ có thuộc về user không
+            address = DiaChi.query.filter_by(MaDiaChi=address_id, MaTaiKhoan=ma_tai_khoan).first()
+            if not address:
+                return False, "Không tìm thấy địa chỉ hoặc không có quyền chỉnh sửa"
+
+            # Nếu đặt làm địa chỉ mặc định, bỏ mặc định của các địa chỉ khác
+            if mac_dinh:
+                DiaChi.query.filter_by(MaTaiKhoan=ma_tai_khoan).update({'DiaChiMacDinh': 0})
+
+            # Cập nhật thông tin địa chỉ
+            address.TenNguoiNhan = ten_nguoi_nhan
+            address.SoDienThoai = so_dien_thoai
+            address.DiaChi = dia_chi
+            address.QuanHuyen = quan_huyen
+            address.TinhThanh = tinh_thanh
+            address.DiaChiMacDinh = 1 if mac_dinh else 0
+
+            db.session.commit()
+            return True, "Cập nhật địa chỉ thành công"
+
+        except Exception as e:
+            db.session.rollback()
+            return False, f"Lỗi: {str(e)}"
+
+    @staticmethod
+    def delete_address(ma_tai_khoan, address_id):
+        """Xóa địa chỉ"""
+        try:
+            # Kiểm tra địa chỉ có thuộc về user không
+            address = DiaChi.query.filter_by(MaDiaChi=address_id, MaTaiKhoan=ma_tai_khoan).first()
+            if not address:
+                return False, "Không tìm thấy địa chỉ hoặc không có quyền xóa"
+
+            # Kiểm tra số lượng địa chỉ còn lại
+            total_addresses = DiaChi.query.filter_by(MaTaiKhoan=ma_tai_khoan).count()
+            if total_addresses <= 1:
+                return False, "Không thể xóa địa chỉ cuối cùng"
+
+            # Nếu xóa địa chỉ mặc định, đặt địa chỉ đầu tiên làm mặc định
+            was_default = address.DiaChiMacDinh == 1
+
+            db.session.delete(address)
+
+            # Nếu địa chỉ vừa xóa là mặc định, đặt địa chỉ đầu tiên còn lại làm mặc định
+            if was_default:
+                first_remaining_address = DiaChi.query.filter_by(MaTaiKhoan=ma_tai_khoan).first()
+                if first_remaining_address:
+                    first_remaining_address.DiaChiMacDinh = 1
+
+            db.session.commit()
+            return True, "Xóa địa chỉ thành công"
 
         except Exception as e:
             db.session.rollback()

@@ -69,37 +69,44 @@
                     </div>
                 </div>
 
-                <div class="card-body">
-                    {% if addresses %}
-                        {% for addr in addresses %}
-                            <div class="border rounded p-3 mb-3 {% if addr.mac_dinh %}border-primary bg-light{% endif %}">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div>
-                                        <h6 class="mb-1">{{ addr.ten_nguoi_nhan }} {% if addr.mac_dinh %}
-                                            <span class="badge bg-primary">Mặc định</span>{% endif %}</h6>
-                                        <p class="mb-1"><i class="bi bi-telephone"></i> {{ addr.so_dien_thoai }}</p>
-                                        <p class="mb-0"><i class="bi bi-geo-alt"></i> {{ addr.dia_chi_day_du }}</p>
-                                    </div>
-                                    <div class="btn-group-vertical btn-group-sm">
-                                        <button class="btn btn-outline-primary btn-sm edit-address"
-                                                data-id="{{ addr.id }}">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="btn btn-outline-danger btn-sm delete-address"
-                                                data-id="{{ addr.id }}">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
+                <div id="address" class="card mt-4" style="display: none;">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Địa chỉ giao hàng</h5>
+                        <button class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-plus"></i> Thêm địa chỉ mới
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        {% if addresses %}
+                            {% for addr in addresses %}
+                                <div class="border rounded p-3 mb-3 {% if addr.mac_dinh %}border-primary bg-light{% endif %}">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">{{ addr.ten_nguoi_nhan }} {% if addr.mac_dinh %}
+                                                <span class="badge bg-primary">Mặc định</span>{% endif %}</h6>
+                                            <p class="mb-1"><i class="bi bi-telephone"></i> {{ addr.so_dien_thoai }}</p>
+                                            <p class="mb-0"><i class="bi bi-geo-alt"></i> {{ addr.dia_chi_day_du }}</p>
+                                        </div>
+                                        <div class="btn-group-vertical btn-group-sm">
+                                            <button class="btn btn-outline-primary btn-sm edit-address"
+                                                    data-id="{{ addr.id }}">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger btn-sm delete-address"
+                                                    data-id="{{ addr.id }}">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i>
+                                Bạn chưa có địa chỉ giao hàng nào. Thêm địa chỉ để thuận tiện cho việc đặt hàng.
                             </div>
-                        {% endfor %}
-                    {% else %}
-                        <p class="profile-address">{{ user.address or 'Chưa cập nhật địa chỉ' }}</p>
-                    {% endif %}
-
-                    <button class="btn btn-outline-primary btn-sm">
-                        <i class="bi bi-plus"></i> Thêm địa chỉ mới
-                    </button>
+                        {% endif %}
+                    </div>
                 </div>
 
                 <!-- Order History Section -->

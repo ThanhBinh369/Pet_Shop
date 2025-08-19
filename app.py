@@ -1,18 +1,42 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from config import Config
-from models import db, TaiKhoan, DangNhap, SanPham, Loai
+from models import db
 from services import AuthService, ProductService, CartService, OrderService
 
 # Import controllers
 try:
     from controllers.auth_controller import auth_bp
-    from controllers.product_controller import product_bp
-    from controllers.cart_controller import cart_bp  # THÊM DÒNG NÀY
-    from controllers.main_controller import main_bp
+
+    auth_imported = True
 except ImportError:
-    from auth_controller import auth_bp
-    # Nếu không có các controller khác, comment lại
+    try:
+        from auth_controller import auth_bp
+
+        auth_imported = True
+    except ImportError:
+        auth_imported = False
+
+try:
+    from controllers.product_controller import product_bp
+
+    product_imported = True
+except ImportError:
+    product_imported = False
+
+try:
+    from controllers.cart_controller import cart_bp
+
+    cart_imported = True
+except ImportError:
+    cart_imported = False
+
+try:
+    from controllers.main_controller import main_bp
+
+    main_imported = True
+except ImportError:
+    main_imported = False
 
 import os
 
@@ -28,14 +52,17 @@ app.config.from_object(Config)
 db.init_app(app)
 
 # Đăng ký blueprints
-app.register_blueprint(auth_bp)
-# Đăng ký product blueprint nếu có
-try:
+if auth_imported:
+    app.register_blueprint(auth_bp)
+
+if product_imported:
     app.register_blueprint(product_bp)
+
+if cart_imported:
     app.register_blueprint(cart_bp)
+
+if main_imported:
     app.register_blueprint(main_bp)
-except:
-    pass
 
 # Tạo bảng nếu chưa tồn tại
 with app.app_context():
@@ -200,6 +227,57 @@ def inject_user():
         is_logged_in='user_id' in session,
         cart_count=cart_count
     )
+
+
+# Route update address
+@app.route('/update-address', methods=['POST'])
+def update_address():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập!'}), 401
+
+    try:
+        data = request.get_json()
+        address_id = data.get('address_id')
+        ten_nguoi_nhan = data.get('ten_nguoi_nhan', '').strip()
+        so_dien_thoai = data.get('so_dien_thoai', '').strip()
+        dia_chi = data.get('dia_chi', '').strip()
+        quan_huyen = data.get('quan_huyen', '').strip()
+        tinh_thanh = data.get('tinh_thanh', '').strip()
+        mac_dinh = data.get('mac_dinh', False)
+
+        success, message = AuthService.update_address(
+            session['user_id'], address_id, ten_nguoi_nhan, so_dien_thoai,
+            dia_chi, quan_huyen, tinh_thanh, mac_dinh
+        )
+
+        if success:
+            return jsonify({'success': True, 'message': message})
+        else:
+            return jsonify({'success': False, 'message': message}), 400
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Có lỗi xảy ra: {str(e)}'}), 500
+
+
+# Route delete address
+@app.route('/delete-address', methods=['POST'])
+def delete_address():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập!'}), 401
+
+    try:
+        data = request.get_json()
+        address_id = data.get('address_id')
+
+        success, message = AuthService.delete_address(session['user_id'], address_id)
+
+        if success:
+            return jsonify({'success': True, 'message': message})
+        else:
+            return jsonify({'success': False, 'message': message}), 400
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Có lỗi xảy ra: {str(e)}'}), 500
 
 
 if __name__ == '__main__':

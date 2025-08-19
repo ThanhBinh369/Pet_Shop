@@ -286,3 +286,65 @@ def add_address():
 
     except Exception as e:
         return jsonify({'success': False, 'message': f'Có lỗi xảy ra: {str(e)}'}), 500
+
+@auth_bp.route('/update-address', methods=['POST'])
+def update_address():
+    """Cập nhật địa chỉ"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập!'}), 401
+
+    try:
+        data = request.get_json()
+        address_id = data.get('address_id')
+        ten_nguoi_nhan = data.get('ten_nguoi_nhan', '').strip()
+        so_dien_thoai = data.get('so_dien_thoai', '').strip()
+        dia_chi = data.get('dia_chi', '').strip()
+        quan_huyen = data.get('quan_huyen', '').strip()
+        tinh_thanh = data.get('tinh_thanh', '').strip()
+        mac_dinh = data.get('mac_dinh', False)
+
+        # Validate
+        if not all([address_id, ten_nguoi_nhan, so_dien_thoai, dia_chi, quan_huyen, tinh_thanh]):
+            return jsonify({'success': False, 'message': 'Vui lòng điền đầy đủ thông tin!'}), 400
+
+        if not so_dien_thoai.isdigit() or len(so_dien_thoai) < 10:
+            return jsonify({'success': False, 'message': 'Số điện thoại không hợp lệ!'}), 400
+
+        # Cập nhật địa chỉ
+        success, message = AuthService.update_address(
+            session['user_id'], address_id, ten_nguoi_nhan, so_dien_thoai,
+            dia_chi, quan_huyen, tinh_thanh, mac_dinh
+        )
+
+        if success:
+            return jsonify({'success': True, 'message': message})
+        else:
+            return jsonify({'success': False, 'message': message}), 400
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Có lỗi xảy ra: {str(e)}'}), 500
+
+
+@auth_bp.route('/delete-address', methods=['POST'])
+def delete_address():
+    """Xóa địa chỉ"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập!'}), 401
+
+    try:
+        data = request.get_json()
+        address_id = data.get('address_id')
+
+        if not address_id:
+            return jsonify({'success': False, 'message': 'Thiếu thông tin địa chỉ!'}), 400
+
+        # Xóa địa chỉ
+        success, message = AuthService.delete_address(session['user_id'], address_id)
+
+        if success:
+            return jsonify({'success': True, 'message': message})
+        else:
+            return jsonify({'success': False, 'message': message}), 400
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Có lỗi xảy ra: {str(e)}'}), 500
