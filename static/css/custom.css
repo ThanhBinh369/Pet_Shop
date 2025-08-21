@@ -30,6 +30,31 @@ body {
     border-color: #d8701f;
 }
 
+/* Sticky Navbar */
+.navbar {
+    position: sticky !important;
+    top: 0;
+    z-index: 1020;
+}
+
+/* Footer always at bottom */
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding-top: 0; /* Remove this padding */
+}
+
+.container.mt-4 {
+    flex: 1;
+    margin-top: 1.5rem !important; /* Keep original margin */
+}
+
+footer {
+    position: static !important;
+    margin-top: auto !important;
+}
+
 .product-card {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     border: 1px solid #e9ecef;
@@ -94,3 +119,5 @@ body {
         max-width: 150px;
     }
 }
+
+

@@ -91,12 +91,48 @@ def api_products():
         if category:
             products = [p for p in products if p['type'].lower() == category.lower()]
 
-        # Filter theo search
+        # Filter theo search - Improved fuzzy search
         if search:
-            search_lower = search.lower()
-            products = [p for p in products if
-                        search_lower in p['name'].lower() or
-                        search_lower in p['brand'].lower()]
+            search_lower = search.lower().strip()
+            search_words = search_lower.split()  # Tách thành từng từ
+
+            filtered_products = []
+            for product in products:
+                # Tạo chuỗi tìm kiếm từ tất cả thông tin sản phẩm
+                searchable_text = f"{product['name']} {product.get('brand', '')} {product.get('description', '')} {product['type']}".lower()
+
+                # Tính điểm matching
+                score = 0
+
+                # Kiểm tra từng từ khóa
+                for word in search_words:
+                    if word in searchable_text:
+                        # Bonus điểm nếu từ khóa xuất hiện trong tên
+                        if word in product['name'].lower():
+                            score += 3
+                        # Bonus điểm nếu từ khóa xuất hiện trong brand
+                        elif word in product.get('brand', '').lower():
+                            score += 2
+                        # Điểm thường nếu xuất hiện trong mô tả hoặc type
+                        else:
+                            score += 1
+
+                # Kiểm tra tìm kiếm mờ (fuzzy search) cho từ khóa dài
+                if len(search_lower) > 3:
+                    if any(word in search_lower for word in searchable_text.split() if len(word) > 2):
+                        score += 1
+
+                # Nếu có điểm > 0 thì thêm vào kết quả
+                if score > 0:
+                    product['search_score'] = score
+                    filtered_products.append(product)
+
+            # Sắp xếp theo điểm cao nhất
+            products = sorted(filtered_products, key=lambda x: x.get('search_score', 0), reverse=True)
+
+            # Xóa search_score khỏi kết quả trả về
+            for product in products:
+                product.pop('search_score', None)
 
         return jsonify({
             'success': True,
