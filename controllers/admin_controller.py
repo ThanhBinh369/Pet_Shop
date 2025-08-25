@@ -1,26 +1,25 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
-from services import ProductService, AuthService, OrderService
+from services.services import ProductService, AuthService, OrderService
 from models import db, SanPham, Loai, TaiKhoan, DonHang
 
 # Tạo blueprint cho admin
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
-
 def require_admin():
     """Helper function kiểm tra quyền admin"""
-    if 'user_id' not in session:
+    # Sẽ được override bởi admin_app.py
+    if 'admin_logged_in' not in session:
         return False
-    # TODO: Kiểm tra quyền admin từ database
-    # Hiện tại cho phép tất cả user đã đăng nhập
+    if 'admin_username' not in session:
+        return False
     return True
-
 
 @admin_bp.route('/')
 def dashboard():
     """Trang dashboard admin"""
     if not require_admin():
         flash('Bạn không có quyền truy cập!', 'error')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('admin_login'))
 
     try:
         # Thống kê tổng quan
@@ -31,45 +30,46 @@ def dashboard():
         # Đơn hàng gần đây
         recent_orders = DonHang.query.order_by(DonHang.NgayDat.desc()).limit(5).all()
 
+        # Sản phẩm sắp hết hàng
+        low_stock_products = SanPham.query.filter(
+            SanPham.TrangThai == 1,
+            SanPham.SoLuong.between(1, 10)
+        ).limit(10).all()
+
         stats = {
             'total_products': total_products,
             'total_users': total_users,
             'total_orders': total_orders
         }
 
-        return render_template('admin/dashboard.html',
+        return render_template('dashboard.html',
                                stats=stats,
-                               recent_orders=recent_orders)
+                               recent_orders=recent_orders,
+                               low_stock_products=low_stock_products)
     except Exception as e:
         flash(f'Lỗi khi tải dashboard: {str(e)}', 'error')
-        return redirect(url_for('main.index'))
-
+        return redirect(url_for('admin_login'))
 
 @admin_bp.route('/products')
 def manage_products():
     """Quản lý sản phẩm"""
     if not require_admin():
         flash('Bạn không có quyền truy cập!', 'error')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('admin_login'))
 
     try:
-        products = ProductService.get_all_products()
         categories = Loai.query.all()
-
-        return render_template('admin/products.html',
-                               products=products,
-                               categories=categories)
+        return render_template('manage_product.html', categories=categories)
     except Exception as e:
         flash(f'Lỗi khi tải danh sách sản phẩm: {str(e)}', 'error')
         return redirect(url_for('admin.dashboard'))
-
 
 @admin_bp.route('/products/add', methods=['GET', 'POST'])
 def add_product():
     """Thêm sản phẩm mới"""
     if not require_admin():
         flash('Bạn không có quyền truy cập!', 'error')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('admin_login'))
 
     if request.method == 'POST':
         try:
@@ -86,7 +86,8 @@ def add_product():
             # Validate
             if not all([ten_san_pham, gia_ban, so_luong, ma_loai]):
                 flash('Vui lòng điền đầy đủ thông tin bắt buộc!', 'error')
-                return render_template('admin/add_product.html')
+                categories = Loai.query.all()
+                return render_template('admin/add_product.html', categories=categories)
 
             # Tạo sản phẩm mới
             san_pham = SanPham(
@@ -117,13 +118,12 @@ def add_product():
         flash(f'Lỗi: {str(e)}', 'error')
         return redirect(url_for('admin.manage_products'))
 
-
 @admin_bp.route('/products/edit/<int:product_id>', methods=['GET', 'POST'])
 def edit_product(product_id):
     """Sửa sản phẩm"""
     if not require_admin():
         flash('Bạn không có quyền truy cập!', 'error')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('admin_login'))
 
     try:
         product = SanPham.query.get_or_404(product_id)
@@ -144,13 +144,12 @@ def edit_product(product_id):
             return redirect(url_for('admin.manage_products'))
 
         categories = Loai.query.all()
-        return render_template('admin/edit_product.html', product=product, categories=categories)
+        return render_template('edit_product.html', product=product, categories=categories)
 
     except Exception as e:
         db.session.rollback()
         flash(f'Lỗi: {str(e)}', 'error')
         return redirect(url_for('admin.manage_products'))
-
 
 @admin_bp.route('/products/delete/<int:product_id>', methods=['POST'])
 def delete_product(product_id):
@@ -169,13 +168,54 @@ def delete_product(product_id):
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Lỗi: {str(e)}'}), 500
 
+@admin_bp.route('/products/<int:product_id>')
+def get_product_detail(product_id):
+    """API lấy chi tiết sản phẩm"""
+    if not require_admin():
+        return jsonify({'success': False, 'message': 'Không có quyền truy cập!'}), 403
+
+    try:
+        product_data = db.session.query(SanPham, Loai).join(Loai).filter(
+            SanPham.MaSanPham == product_id
+        ).first()
+
+        if not product_data:
+            return jsonify({'success': False, 'message': 'Sản phẩm không tồn tại'}), 404
+
+        product, loai = product_data
+        result = {
+            'id': product.MaSanPham,
+            'name': product.TenSanPham,
+            'type': loai.TenLoai,
+            'brand': product.ThungHieu or '',
+            'price': float(product.GiaBan) if product.GiaBan else 0,
+            'quantity': product.SoLuong,
+            'description': product.MoTa or '',
+            'cost': float(product.ChiPhi) if product.ChiPhi else 0,
+            'import_price': float(product.GiaNhap) if product.GiaNhap else 0,
+            'status': 'active' if product.TrangThai == 1 else 'inactive',
+            'category_id': product.MaLoai,
+            'created_date': product.NgayTao.strftime('%Y-%m-%d %H:%M:%S') if product.NgayTao else '',
+            'updated_date': product.NgayCapNhat.strftime('%Y-%m-%d %H:%M:%S') if product.NgayCapNhat else ''
+        }
+
+        return jsonify({
+            'success': True,
+            'product': result
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Lỗi: {str(e)}'
+        }), 500
 
 @admin_bp.route('/orders')
 def manage_orders():
     """Quản lý đơn hàng"""
     if not require_admin():
         flash('Bạn không có quyền truy cập!', 'error')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('admin_login'))
 
     try:
         # Lấy parameters
@@ -201,13 +241,12 @@ def manage_orders():
         flash(f'Lỗi khi tải danh sách đơn hàng: {str(e)}', 'error')
         return redirect(url_for('admin.dashboard'))
 
-
 @admin_bp.route('/orders/<int:order_id>')
 def order_detail(order_id):
     """Chi tiết đơn hàng"""
     if not require_admin():
         flash('Bạn không có quyền truy cập!', 'error')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('admin_login'))
 
     try:
         order = DonHang.query.get_or_404(order_id)
@@ -216,7 +255,6 @@ def order_detail(order_id):
     except Exception as e:
         flash(f'Lỗi: {str(e)}', 'error')
         return redirect(url_for('admin.manage_orders'))
-
 
 @admin_bp.route('/orders/update-status', methods=['POST'])
 def update_order_status():
@@ -242,13 +280,12 @@ def update_order_status():
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Lỗi: {str(e)}'}), 500
 
-
 @admin_bp.route('/users')
 def manage_users():
     """Quản lý người dùng"""
     if not require_admin():
         flash('Bạn không có quyền truy cập!', 'error')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('admin_login'))
 
     try:
         page = int(request.args.get('page', 1))
@@ -264,13 +301,12 @@ def manage_users():
         flash(f'Lỗi khi tải danh sách người dùng: {str(e)}', 'error')
         return redirect(url_for('admin.dashboard'))
 
-
 @admin_bp.route('/categories')
 def manage_categories():
     """Quản lý danh mục"""
     if not require_admin():
         flash('Bạn không có quyền truy cập!', 'error')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('admin_login'))
 
     try:
         categories = Loai.query.all()
@@ -279,7 +315,6 @@ def manage_categories():
     except Exception as e:
         flash(f'Lỗi khi tải danh mục: {str(e)}', 'error')
         return redirect(url_for('admin.dashboard'))
-
 
 @admin_bp.route('/categories/add', methods=['POST'])
 def add_category():

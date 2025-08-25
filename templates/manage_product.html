@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý sản phẩm - Admin</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/admin.css') }}" rel="stylesheet">
+</head>
+<body>
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg bg-orange">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="#">
+            <i class="fas fa-paw"></i> Pet Shop Admin
+        </a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link" href="#"><i class="fas fa-user"></i> Admin</a>
+            <a class="nav-link" href="#"><i class="fas fa-sign-out-alt"></i> Đăng xuất</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-2 sidebar">
+            <div class="list-group list-group-flush">
+                <a href="#" class="list-group-item list-group-item-action">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+                <a href="#" class="list-group-item list-group-item-action active">
+                    <i class="fas fa-box"></i> Quản lý sản phẩm
+                </a>
+                <a href="#" class="list-group-item list-group-item-action">
+                    <i class="fas fa-tags"></i> Quản lý loại
+                </a>
+                <a href="#" class="list-group-item list-group-item-action">
+                    <i class="fas fa-shopping-cart"></i> Đơn hàng
+                </a>
+                <a href="#" class="list-group-item list-group-item-action">
+                    <i class="fas fa-users"></i> Khách hàng
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-10 main-content">
+            <div class="content-header">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-box"></i> Quản lý sản phẩm</h2>
+                    <button class="btn btn-primary" id="addProductBtn">
+                        <i class="fas fa-plus"></i> Thêm sản phẩm mới
+                    </button>
+                </div>
+
+                <!-- Statistics Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="stats-card bg-primary">
+                            <div class="stats-content">
+                                <h3 id="totalProducts">250</h3>
+                                <p>Tổng sản phẩm</p>
+                            </div>
+                            <div class="stats-icon">
+                                <i class="fas fa-box"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card bg-success">
+                            <div class="stats-content">
+                                <h3 id="inStockProducts">180</h3>
+                                <p>Còn hàng</p>
+                            </div>
+                            <div class="stats-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card bg-warning">
+                            <div class="stats-content">
+                                <h3 id="lowStockProducts">25</h3>
+                                <p>Sắp hết hàng</p>
+                            </div>
+                            <div class="stats-icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card bg-danger">
+                            <div class="stats-content">
+                                <h3 id="outOfStockProducts">45</h3>
+                                <p>Hết hàng</p>
+                            </div>
+                            <div class="stats-icon">
+                                <i class="fas fa-times-circle"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="filter-section mb-4">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="form-label">Tìm kiếm</label>
+                            <input type="text" class="form-control" id="searchInput"
+                                   placeholder="Tìm theo tên sản phẩm, thương hiệu...">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Loại sản phẩm</label>
+                            <select class="form-select" id="categoryFilter">
+                                <option value="">Tất cả loại</option>
+                                <option value="1">Thức ăn cho chó</option>
+                                <option value="2">Thức ăn cho mèo</option>
+                                <option value="3">Phụ kiện cho chó</option>
+                                <option value="4">Phụ kiện cho mèo</option>
+                                <option value="5">Thuốc & Vitamin</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Trạng thái</label>
+                            <select class="form-select" id="statusFilter">
+                                <option value="">Tất cả</option>
+                                <option value="in-stock">Còn hàng</option>
+                                <option value="low-stock">Sắp hết hàng</option>
+                                <option value="out-of-stock">Hết hàng</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button class="btn btn-outline-secondary w-100" id="resetFilters">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Table -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Danh sách sản phẩm</h5>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-success btn-sm" id="exportBtn">
+                            <i class="fas fa-download"></i> Xuất Excel
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" id="importBtn">
+                            <i class="fas fa-upload"></i> Nhập Excel
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="productsTable">
+                            <thead class="table-light">
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="selectAll" class="form-check-input">
+                                </th>
+                                <th>Mã SP</th>
+                                <th>Tên sản phẩm</th>
+                                <th>Loại</th>
+                                <th>Thương hiệu</th>
+                                <th>Giá bán</th>
+                                <th>Số lượng</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                            </thead>
+                            <tbody id="productsTableBody">
+                            <!-- Sample data -->
+                            <tr>
+                                <td><input type="checkbox" class="form-check-input row-checkbox"></td>
+                                <td>#SP001</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="https://via.placeholder.com/40x40" class="product-thumb me-2" alt="">
+                                        <span>Thức ăn khô cho chó Royal Canin</span>
+                                    </div>
+                                </td>
+                                <td><span class="badge bg-primary">Thức ăn cho chó</span></td>
+                                <td>Royal Canin</td>
+                                <td class="fw-bold text-primary">350,000 đ</td>
+                                <td>
+                                    <span class="badge bg-success">45</span>
+                                </td>
+                                <td><span class="status-badge status-in-stock">Còn hàng</span></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-sm btn-outline-info view-btn" data-id="1"
+                                                title="Xem chi tiết">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-primary edit-btn" data-id="1"
+                                                title="Chỉnh sửa">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-btn" data-id="1"
+                                                title="Xóa">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="form-check-input row-checkbox"></td>
+                                <td>#SP002</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="https://via.placeholder.com/40x40" class="product-thumb me-2" alt="">
+                                        <span>Thức ăn ướt cho mèo Whiskas</span>
+                                    </div>
+                                </td>
+                                <td><span class="badge bg-info">Thức ăn cho mèo</span></td>
+                                <td>Whiskas</td>
+                                <td class="fw-bold text-primary">25,000 đ</td>
+                                <td>
+                                    <span class="badge bg-warning">5</span>
+                                </td>
+                                <td><span class="status-badge status-low-stock">Sắp hết</span></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-sm btn-outline-info view-btn" data-id="2"
+                                                title="Xem chi tiết">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-primary edit-btn" data-id="2"
+                                                title="Chỉnh sửa">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-btn" data-id="2"
+                                                title="Xóa">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="form-check-input row-checkbox"></td>
+                                <td>#SP003</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="https://via.placeholder.com/40x40" class="product-thumb me-2" alt="">
+                                        <span>Vòng cổ chó da thật cao cấp</span>
+                                    </div>
+                                </td>
+                                <td><span class="badge bg-secondary">Phụ kiện cho chó</span></td>
+                                <td>PetLove</td>
+                                <td class="fw-bold text-primary">150,000 đ</td>
+                                <td>
+                                    <span class="badge bg-danger">0</span>
+                                </td>
+                                <td><span class="status-badge status-out-of-stock">Hết hàng</span></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-sm btn-outline-info view-btn" data-id="3"
+                                                title="Xem chi tiết">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-primary edit-btn" data-id="3"
+                                                title="Chỉnh sửa">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-btn" data-id="3"
+                                                title="Xóa">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div class="text-muted">
+                            Hiển thị 1-10 của 250 sản phẩm
+                        </div>
+                        <nav>
+                            <ul class="pagination mb-0">
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#"><i class="fas fa-chevron-left"></i></a>
+                                </li>
+                                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                <li class="page-item">
+                                    <a class="page-link" href="#"><i class="fas fa-chevron-right"></i></a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bulk Actions -->
+            <div class="bulk-actions mt-3" id="bulkActions" style="display: none;">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-danger" id="bulkDeleteBtn">
+                        <i class="fas fa-trash"></i> Xóa đã chọn
+                    </button>
+                    <button class="btn btn-outline-warning" id="bulkUpdateStockBtn">
+                        <i class="fas fa-boxes"></i> Cập nhật số lượng
+                    </button>
+                    <button class="btn btn-outline-secondary" id="bulkExportBtn">
+                        <i class="fas fa-download"></i> Xuất đã chọn
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Product Modal -->
+<div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productModalTitle">Thêm sản phẩm mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="productForm">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Tên sản phẩm *</label>
+                                <input type="text" class="form-control" id="productName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Loại sản phẩm *</label>
+                                <select class="form-select" id="productCategory" required>
+                                    <option value="">Chọn loại sản phẩm</option>
+                                    <option value="1">Thức ăn cho chó</option>
+                                    <option value="2">Thức ăn cho mèo</option>
+                                    <option value="3">Phụ kiện cho chó</option>
+                                    <option value="4">Phụ kiện cho mèo</option>
+                                    <option value="5">Thuốc & Vitamin</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Thương hiệu</label>
+                                <input type="text" class="form-control" id="productBrand">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Chi phí</label>
+                                <input type="number" class="form-control" id="productCost" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Giá nhập</label>
+                                <input type="number" class="form-control" id="productImportPrice" step="0.01">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Giá bán *</label>
+                                <input type="number" class="form-control" id="productSellPrice" step="0.01" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Số lượng *</label>
+                                <input type="number" class="form-control" id="productQuantity" min="0" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Trạng thái</label>
+                                <select class="form-select" id="productStatus">
+                                    <option value="1">Hoạt động</option>
+                                    <option value="0">Ngưng kinh doanh</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả</label>
+                        <textarea class="form-control" id="productDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Hình ảnh sản phẩm</label>
+                        <input type="file" class="form-control" id="productImages" multiple accept="image/*">
+                        <div class="form-text">Chọn nhiều hình ảnh (JPG, PNG, GIF)</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Lưu sản phẩm
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.7.5/sweetalert2.min.js"></script>
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+<script>
+    // Load products from API
+    async function loadProducts() {
+        try {
+            const response = await fetch('/api/products');
+            const data = await response.json();
+
+            if (data.success) {
+                renderProducts(data.products);
+                updateStats(data.products);
+            }
+        } catch (error) {
+            console.error('Error loading products:', error);
+        }
+    }
+
+    // Call on page load
+    document.addEventListener('DOMContentLoaded', loadProducts);
+</script>
+</body>
+</html>

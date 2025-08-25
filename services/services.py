@@ -1,5 +1,4 @@
-from models.models import db, TaiKhoan, DangNhap, SanPham, Loai, GioHang, GioHang_SanPham, DonHang, ChiTiet_DonHang, \
-    DiaChi
+from models.models import db, TaiKhoan, DangNhap, SanPham, Loai, GioHang, GioHang_SanPham, DonHang, ChiTiet_DonHang, DiaChi
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from sqlalchemy import and_
