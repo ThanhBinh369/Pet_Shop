@@ -1,5 +1,8 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from flask import current_app
+from sqlalchemy import and_
+import json
 
 db = SQLAlchemy()
 
@@ -30,6 +33,8 @@ class SanPham(db.Model):
     MoTa = db.Column(db.Text)
     TrangThai = db.Column(db.Integer, default=1)
     MaLoai = db.Column(db.Integer, db.ForeignKey('Loai.MaLoai'), nullable=False)
+    HinhAnh = db.Column(db.String(500))
+    HinhAnhPhu = db.Column(db.Text)
 
 
 class TaiKhoan(db.Model):

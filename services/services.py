@@ -1,7 +1,10 @@
-from models.models import db, TaiKhoan, DangNhap, SanPham, Loai, GioHang, GioHang_SanPham, DonHang, ChiTiet_DonHang, DiaChi
+from models.models import db, TaiKhoan, DangNhap, SanPham, Loai, GioHang, GioHang_SanPham, DonHang, ChiTiet_DonHang, \
+    DiaChi
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+from flask import current_app
 from sqlalchemy import and_
+import json
 
 
 class AuthService:
@@ -231,6 +234,23 @@ class AuthService:
 
 class ProductService:
     @staticmethod
+    def get_cloudinary_url(image_filename):
+        """Tạo URL Cloudinary từ tên file"""
+        if not image_filename:
+            return None
+
+        cloud_name = current_app.config.get('CLOUDINARY_CLOUD_NAME')
+        if not cloud_name:
+            return None
+
+        # Nếu đã là URL đầy đủ thì return luôn
+        if image_filename.startswith('http'):
+            return image_filename
+
+        # Tạo URL Cloudinary theo format: folder/filename
+        return f"https://res.cloudinary.com/{cloud_name}/image/upload/v1/{image_filename}"
+
+    @staticmethod
     def get_all_products():
         """Lấy tất cả sản phẩm"""
         try:
@@ -240,6 +260,28 @@ class ProductService:
 
             result = []
             for product in products:
+                # Xử lý hình ảnh chính
+                main_image = ProductService.get_cloudinary_url(
+                    getattr(product, 'HinhAnh', None)
+                )
+
+                # Xử lý hình ảnh phụ
+                additional_images = []
+                if hasattr(product, 'HinhAnhPhu') and product.HinhAnhPhu:
+                    try:
+                        import json
+                        image_list = json.loads(product.HinhAnhPhu)
+                        additional_images = [ProductService.get_cloudinary_url(img) for img in image_list if img]
+                        additional_images = [img for img in additional_images if img]
+                    except:
+                        additional_images = []
+
+                # Tạo danh sách tất cả hình ảnh
+                all_images = []
+                if main_image:
+                    all_images.append(main_image)
+                all_images.extend(additional_images)
+
                 result.append({
                     'id': product.MaSanPham,
                     'name': product.TenSanPham,
@@ -247,7 +289,9 @@ class ProductService:
                     'brand': product.ThungHieu or '',
                     'price': float(product.GiaBan) if product.GiaBan else 0,
                     'description': product.MoTa or '',
-                    'quantity': product.SoLuong
+                    'quantity': product.SoLuong,
+                    'image': main_image,
+                    'images': all_images
                 })
 
             print(f"ProductService trả về {len(result)} sản phẩm")
@@ -265,6 +309,28 @@ class ProductService:
             ).first()
 
             if product:
+                # Xử lý hình ảnh chính
+                main_image = ProductService.get_cloudinary_url(
+                    getattr(product.SanPham, 'HinhAnh', None)
+                )
+
+                # Xử lý hình ảnh phụ
+                additional_images = []
+                if hasattr(product.SanPham, 'HinhAnhPhu') and product.SanPham.HinhAnhPhu:
+                    try:
+                        import json
+                        image_list = json.loads(product.SanPham.HinhAnhPhu)
+                        additional_images = [ProductService.get_cloudinary_url(img) for img in image_list if img]
+                        additional_images = [img for img in additional_images if img]
+                    except:
+                        additional_images = []
+
+                # Tạo danh sách tất cả hình ảnh
+                all_images = []
+                if main_image:
+                    all_images.append(main_image)
+                all_images.extend(additional_images)
+
                 return {
                     'id': product.SanPham.MaSanPham,
                     'name': product.SanPham.TenSanPham,
@@ -272,7 +338,9 @@ class ProductService:
                     'brand': product.SanPham.ThungHieu or '',
                     'price': float(product.SanPham.GiaBan) if product.SanPham.GiaBan else 0,
                     'description': product.SanPham.MoTa or '',
-                    'quantity': product.SanPham.SoLuong
+                    'quantity': product.SanPham.SoLuong,
+                    'image': main_image,
+                    'images': all_images
                 }
             return None
         except Exception as e:

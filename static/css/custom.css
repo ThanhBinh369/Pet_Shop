@@ -119,5 +119,38 @@ footer {
         max-width: 150px;
     }
 }
+/* Product image styling */
+.product-image-wrapper {
+    position: relative;
+    background-color: #f8f9fa;
+}
 
+.card-img-top {
+    transition: transform 0.3s ease;
+}
+
+.card:hover .card-img-top {
+    transform: scale(1.1);
+}
+
+.product-image-container img {
+    max-width: 100%;
+    height: auto;
+}
+
+.product-thumb {
+    border: 2px solid transparent;
+    transition: border-color 0.2s ease;
+}
+
+.product-thumb:hover {
+    border-color: #f28c38;
+}
+
+/* Responsive image adjustments */
+@media (max-width: 768px) {
+    .product-image-wrapper {
+        height: 180px !important;
+    }
+}
 

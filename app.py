@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+import cloudinary
 from flask_sqlalchemy import SQLAlchemy
 from config import Config
 from models import db
@@ -50,6 +51,13 @@ app.config.from_object(Config)
 
 # Khởi tạo database
 db.init_app(app)
+
+cloudinary.config(
+    cloud_name=app.config['CLOUDINARY_CLOUD_NAME'],
+    api_key=app.config['CLOUDINARY_API_KEY'],
+    api_secret=app.config['CLOUDINARY_API_SECRET'],
+    secure=True
+)
 
 # Đăng ký blueprints
 if auth_imported:

@@ -5,6 +5,7 @@ from models import db, SanPham, Loai, TaiKhoan, DonHang
 # Tạo blueprint cho admin
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
+
 def require_admin():
     """Helper function kiểm tra quyền admin"""
     # Sẽ được override bởi admin_app.py
@@ -13,6 +14,7 @@ def require_admin():
     if 'admin_username' not in session:
         return False
     return True
+
 
 @admin_bp.route('/')
 def dashboard():
@@ -50,6 +52,7 @@ def dashboard():
         flash(f'Lỗi khi tải dashboard: {str(e)}', 'error')
         return redirect(url_for('admin_login'))
 
+
 @admin_bp.route('/products')
 def manage_products():
     """Quản lý sản phẩm"""
@@ -63,6 +66,7 @@ def manage_products():
     except Exception as e:
         flash(f'Lỗi khi tải danh sách sản phẩm: {str(e)}', 'error')
         return redirect(url_for('admin.dashboard'))
+
 
 @admin_bp.route('/products/add', methods=['GET', 'POST'])
 def add_product():
@@ -83,6 +87,9 @@ def add_product():
             mo_ta = request.form.get('moTa', '').strip()
             ma_loai = request.form.get('maLoai')
 
+            # THÊM XỬ LÝ HÌNH ẢNH
+            hinh_anh_url = request.form.get('hinhAnhUrl', '').strip()  # URL từ Cloudinary
+
             # Validate
             if not all([ten_san_pham, gia_ban, so_luong, ma_loai]):
                 flash('Vui lòng điền đầy đủ thông tin bắt buộc!', 'error')
@@ -98,7 +105,8 @@ def add_product():
                 SoLuong=int(so_luong),
                 ThungHieu=thuong_hieu,
                 MoTa=mo_ta,
-                MaLoai=int(ma_loai)
+                MaLoai=int(ma_loai),
+                HinhAnh=hinh_anh_url  # THÊM HÌNH ẢNH
             )
 
             db.session.add(san_pham)
@@ -117,6 +125,7 @@ def add_product():
     except Exception as e:
         flash(f'Lỗi: {str(e)}', 'error')
         return redirect(url_for('admin.manage_products'))
+
 
 @admin_bp.route('/products/edit/<int:product_id>', methods=['GET', 'POST'])
 def edit_product(product_id):
@@ -151,6 +160,7 @@ def edit_product(product_id):
         flash(f'Lỗi: {str(e)}', 'error')
         return redirect(url_for('admin.manage_products'))
 
+
 @admin_bp.route('/products/delete/<int:product_id>', methods=['POST'])
 def delete_product(product_id):
     """Xóa sản phẩm (soft delete)"""
@@ -167,6 +177,7 @@ def delete_product(product_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Lỗi: {str(e)}'}), 500
+
 
 @admin_bp.route('/products/<int:product_id>')
 def get_product_detail(product_id):
@@ -210,6 +221,7 @@ def get_product_detail(product_id):
             'message': f'Lỗi: {str(e)}'
         }), 500
 
+
 @admin_bp.route('/orders')
 def manage_orders():
     """Quản lý đơn hàng"""
@@ -241,6 +253,7 @@ def manage_orders():
         flash(f'Lỗi khi tải danh sách đơn hàng: {str(e)}', 'error')
         return redirect(url_for('admin.dashboard'))
 
+
 @admin_bp.route('/orders/<int:order_id>')
 def order_detail(order_id):
     """Chi tiết đơn hàng"""
@@ -255,6 +268,7 @@ def order_detail(order_id):
     except Exception as e:
         flash(f'Lỗi: {str(e)}', 'error')
         return redirect(url_for('admin.manage_orders'))
+
 
 @admin_bp.route('/orders/update-status', methods=['POST'])
 def update_order_status():
@@ -280,6 +294,7 @@ def update_order_status():
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Lỗi: {str(e)}'}), 500
 
+
 @admin_bp.route('/users')
 def manage_users():
     """Quản lý người dùng"""
@@ -301,6 +316,7 @@ def manage_users():
         flash(f'Lỗi khi tải danh sách người dùng: {str(e)}', 'error')
         return redirect(url_for('admin.dashboard'))
 
+
 @admin_bp.route('/categories')
 def manage_categories():
     """Quản lý danh mục"""
@@ -315,6 +331,7 @@ def manage_categories():
     except Exception as e:
         flash(f'Lỗi khi tải danh mục: {str(e)}', 'error')
         return redirect(url_for('admin.dashboard'))
+
 
 @admin_bp.route('/categories/add', methods=['POST'])
 def add_category():

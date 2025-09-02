@@ -112,17 +112,17 @@ $(document).on('click', '.btn:contains("Chỉnh sửa")', function () {
                     address: address
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    throw new Error(data.message);
-                }
-                return data;
-            })
-            .catch(error => {
-                Swal.showValidationMessage(error.message);
-                return false;
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        throw new Error(data.message);
+                    }
+                    return data;
+                })
+                .catch(error => {
+                    Swal.showValidationMessage(error.message);
+                    return false;
+                });
         },
         allowOutsideClick: () => !Swal.isLoading()
     }).then((result) => {
@@ -212,17 +212,17 @@ $(document).on('click', '.btn:contains("Thêm địa chỉ mới")', function ()
                     mac_dinh: mac_dinh
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    throw new Error(data.message);
-                }
-                return data;
-            })
-            .catch(error => {
-                Swal.showValidationMessage(error.message);
-                return false;
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        throw new Error(data.message);
+                    }
+                    return data;
+                })
+                .catch(error => {
+                    Swal.showValidationMessage(error.message);
+                    return false;
+                });
         },
         allowOutsideClick: () => !Swal.isLoading()
     }).then((result) => {
@@ -328,17 +328,17 @@ $(document).on('click', '.edit-address', function () {
                     mac_dinh: mac_dinh
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    throw new Error(data.message);
-                }
-                return data;
-            })
-            .catch(error => {
-                Swal.showValidationMessage(error.message);
-                return false;
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        throw new Error(data.message);
+                    }
+                    return data;
+                })
+                .catch(error => {
+                    Swal.showValidationMessage(error.message);
+                    return false;
+                });
         },
         allowOutsideClick: () => !Swal.isLoading()
     }).then((result) => {
@@ -381,17 +381,17 @@ $(document).on('click', '.delete-address', function () {
                     address_id: addressId
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    throw new Error(data.message);
-                }
-                return data;
-            })
-            .catch(error => {
-                Swal.showValidationMessage(error.message);
-                return false;
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        throw new Error(data.message);
+                    }
+                    return data;
+                })
+                .catch(error => {
+                    Swal.showValidationMessage(error.message);
+                    return false;
+                });
         },
         allowOutsideClick: () => !Swal.isLoading()
     }).then((result) => {
@@ -464,17 +464,17 @@ $(document).on('click', '.btn:contains("Đổi mật khẩu")', function () {
                     new_password: newPass
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    throw new Error(data.message);
-                }
-                return data;
-            })
-            .catch(error => {
-                Swal.showValidationMessage(error.message);
-                return false;
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        throw new Error(data.message);
+                    }
+                    return data;
+                })
+                .catch(error => {
+                    Swal.showValidationMessage(error.message);
+                    return false;
+                });
         },
         allowOutsideClick: () => !Swal.isLoading()
     }).then((result) => {
@@ -667,7 +667,14 @@ document.addEventListener('DOMContentLoaded', function () {
     // Product thumbnail functionality
     document.querySelectorAll('.product-thumb').forEach(thumb => {
         thumb.addEventListener('click', function () {
-            document.getElementById('main-product-image').src = this.src.replace('80x80', '500x500');
+            const mainImg = document.getElementById('main-product-image');
+            if (mainImg) {
+                mainImg.src = this.src;
+                // Remove active class from all thumbs
+                document.querySelectorAll('.product-thumb').forEach(t => t.classList.remove('border-primary'));
+                // Add active class to clicked thumb
+                this.classList.add('border-primary');
+            }
         });
     });
 });

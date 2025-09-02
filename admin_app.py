@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+import cloudinary
 from flask_sqlalchemy import SQLAlchemy
 from config import Config
 from models import db
@@ -23,6 +24,13 @@ admin_app.config.from_object(Config)
 
 # Khởi tạo database
 db.init_app(admin_app)
+
+cloudinary.config(
+    cloud_name=admin_app.config['CLOUDINARY_CLOUD_NAME'],
+    api_key=admin_app.config['CLOUDINARY_API_KEY'],
+    api_secret=admin_app.config['CLOUDINARY_API_SECRET'],
+    secure=True
+)
 
 # Bảo mật admin - chỉ định admin accounts
 ADMIN_ACCOUNTS = {
@@ -84,6 +92,48 @@ def admin_index():
         return redirect(url_for('admin_login'))
     return redirect(url_for('admin.dashboard'))
 
+@admin_app.route('/api/admin/upload-image', methods=['POST'])
+def admin_upload_image():
+    if not require_admin_auth():
+        return jsonify({'success': False, 'message': 'Không có quyền truy cập!'}), 403
+
+    try:
+        if 'image' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+
+        # Validate file type
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        if not ('.' in file.filename and
+                file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+            return jsonify({'error': 'Invalid file type'}), 400
+
+        # Upload lên Cloudinary
+        result = cloudinary.uploader.upload(
+            file,
+            folder="pet_shop/products",
+            resource_type="auto",
+            transformation=[
+                {'quality': 'auto:good'},
+                {'format': 'auto'},
+                {'width': 800, 'height': 600, 'crop': 'limit'}
+            ]
+        )
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'url': result['secure_url'],
+                'public_id': result['public_id']
+            }
+        })
+
+    except Exception as e:
+        print(f"Upload error: {str(e)}")
+        return jsonify({'error': 'Upload failed'}), 500
 
 # Context processor cho admin
 @admin_app.context_processor
@@ -104,11 +154,22 @@ def api_admin_products():
         from models import SanPham, Loai
 
         # Lấy tất cả sản phẩm (kể cả ẩn) cho admin
-        products_query = db.session.query(SanPham, Loai).join(Loai, SanPham.MaLoai == Loai.MaLoai).all()
+        products_query = db.session.query(SanPham, Loai).join(Loai, SanPham.MaLoai == Loai.MaLoai).filter(SanPham.TrangThai == 1).all()
 
         result = []
         for product_data in products_query:
             product, loai = product_data
+
+            # Xử lý hình ảnh
+            main_image = None
+            if hasattr(product, 'HinhAnh') and product.HinhAnh:
+                if product.HinhAnh.startswith('http'):
+                    main_image = product.HinhAnh
+                else:
+                    cloud_name = admin_app.config.get('CLOUDINARY_CLOUD_NAME')
+                    if cloud_name:
+                        main_image = f"https://res.cloudinary.com/{cloud_name}/image/upload/v1/pet_shop/products/{product.HinhAnh}"
+
             result.append({
                 'id': product.MaSanPham,
                 'name': product.TenSanPham,
@@ -121,7 +182,8 @@ def api_admin_products():
                 'import_price': float(product.GiaNhap) if product.GiaNhap else 0,
                 'status': 'active' if product.TrangThai == 1 else 'inactive',
                 'created_date': product.NgayTao.strftime('%Y-%m-%d') if product.NgayTao else '',
-                'updated_date': product.NgayCapNhat.strftime('%Y-%m-%d') if product.NgayCapNhat else ''
+                'updated_date': product.NgayCapNhat.strftime('%Y-%m-%d') if product.NgayCapNhat else '',
+                'image': main_image  # THÊM MỚI
             })
 
         return jsonify({

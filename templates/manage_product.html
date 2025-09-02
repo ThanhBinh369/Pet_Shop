@@ -378,11 +378,71 @@
                         <label class="form-label">Mô tả</label>
                         <textarea class="form-control" id="productDescription" rows="3"></textarea>
                     </div>
+                    <!-- Thêm đoạn này vào form add product -->
                     <div class="mb-3">
-                        <label class="form-label">Hình ảnh sản phẩm</label>
-                        <input type="file" class="form-control" id="productImages" multiple accept="image/*">
-                        <div class="form-text">Chọn nhiều hình ảnh (JPG, PNG, GIF)</div>
+                        <label for="hinhAnh" class="form-label">Hình ảnh sản phẩm</label>
+                        <div class="upload-section border rounded p-3">
+                            <input type="file" id="hinhAnh" name="hinhAnh" accept="image/*" class="form-control mb-2">
+                            <button type="button" id="uploadImageBtn" class="btn btn-secondary">Upload lên Cloudinary
+                            </button>
+                            <input type="hidden" id="hinhAnhUrl" name="hinhAnhUrl">
+
+                            <div id="imagePreview" class="mt-3" style="display: none;">
+                                <img id="previewImg" src="" style="max-width: 200px; height: auto;"
+                                     class="border rounded">
+                                <p class="mt-2 text-success">✓ Upload thành công!</p>
+                            </div>
+                        </div>
                     </div>
+
+                    <script>
+                        document.getElementById('uploadImageBtn').addEventListener('click', async function () {
+                            const fileInput = document.getElementById('hinhAnh');
+                            const file = fileInput.files[0];
+
+                            if (!file) {
+                                alert('Vui lòng chọn file ảnh!');
+                                return;
+                            }
+
+                            const formData = new FormData();
+                            formData.append('image', file);
+
+                            // Disable button và hiển thị loading
+                            this.disabled = true;
+                            this.textContent = 'Đang upload...';
+
+                            try {
+                                const response = await fetch('/api/admin/upload-image', {
+                                    method: 'POST',
+                                    body: formData
+                                });
+
+                                const result = await response.json();
+
+                                if (result.success) {
+                                    // Set URL vào hidden input
+                                    document.getElementById('hinhAnhUrl').value = result.data.url;
+
+                                    // Hiển thị preview
+                                    document.getElementById('previewImg').src = result.data.url;
+                                    document.getElementById('imagePreview').style.display = 'block';
+
+                                    this.textContent = 'Upload thành công!';
+                                    this.className = 'btn btn-success';
+                                } else {
+                                    alert('Upload thất bại: ' + (result.error || 'Unknown error'));
+                                    this.disabled = false;
+                                    this.textContent = 'Upload lên Cloudinary';
+                                }
+                            } catch (error) {
+                                console.error('Upload error:', error);
+                                alert('Có lỗi xảy ra khi upload!');
+                                this.disabled = false;
+                                this.textContent = 'Upload lên Cloudinary';
+                            }
+                        });
+                    </script>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
