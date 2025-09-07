@@ -215,9 +215,84 @@ def checkout():
         flash('Giỏ hàng trống!', 'warning')
         return redirect(url_for('cart'))
 
+    # Lấy danh sách địa chỉ của user
+    addresses = AuthService.get_user_addresses(session['user_id'])
     total = sum(item['price'] * item['quantity'] for item in cart_items)
-    return render_template('checkout.html', cart_items=cart_items, total=total)
 
+    return render_template('checkout.html',
+                           cart_items=cart_items,
+                           total=total,
+                           addresses=addresses)
+
+# Route đặt hàng
+@app.route('/place-order', methods=['POST'])
+def place_order():
+    if 'user_id' not in session:
+        flash('Vui lòng đăng nhập!', 'warning')
+        return redirect(url_for('auth.login'))
+
+    try:
+        # Lấy thông tin từ form
+        address_id = request.form.get('address_id')
+        note = request.form.get('note', '')
+
+        if not address_id:
+            flash('Vui lòng chọn địa chỉ giao hàng!', 'error')
+            return redirect(url_for('checkout'))
+
+        # Tạo đơn hàng
+        success, result = OrderService.create_order(session['user_id'], address_id)
+
+        if success:
+            flash(f'Đặt hàng thành công! Mã đơn hàng: {result}', 'success')
+            return redirect(url_for('order_success', order_id=result))
+        else:
+            flash(result, 'error')
+            return redirect(url_for('checkout'))
+
+    except Exception as e:
+        flash(f'Lỗi khi đặt hàng: {str(e)}', 'error')
+        return redirect(url_for('checkout'))
+
+
+# Route thành công
+@app.route('/order-success/<int:order_id>')
+def order_success(order_id):
+    if 'user_id' not in session:
+        flash('Vui lòng đăng nhập!', 'warning')
+        return redirect(url_for('auth.login'))
+
+    return render_template('order_success.html', order_id=order_id)
+
+
+# Route quản lý đơn hàng
+@app.route('/my-orders')
+def my_orders():
+    if 'user_id' not in session:
+        flash('Vui lòng đăng nhập!', 'warning')
+        return redirect(url_for('auth.login'))
+
+    # Lấy danh sách đơn hàng của user
+    orders = OrderService.get_user_orders(session['user_id'])
+    return render_template('my_orders.html', orders=orders)
+
+
+# Route hủy đơn hàng
+@app.route('/cancel-order/<int:order_id>', methods=['POST'])
+def cancel_order(order_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập!'}), 401
+
+    try:
+        success, message = OrderService.cancel_order(session['user_id'], order_id)
+
+        if success:
+            return jsonify({'success': True, 'message': message})
+        else:
+            return jsonify({'success': False, 'message': message}), 400
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Lỗi: {str(e)}'}), 500
 
 # Helper function để kiểm tra đăng nhập và thêm thông tin cart
 @app.context_processor

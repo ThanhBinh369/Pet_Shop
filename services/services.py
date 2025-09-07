@@ -584,3 +584,62 @@ class OrderService:
         except Exception as e:
             db.session.rollback()
             return False, f"Lỗi: {str(e)}"
+
+    @staticmethod
+    def get_user_orders(ma_tai_khoan):
+        """Lấy danh sách đơn hàng của user"""
+        try:
+            orders = db.session.query(DonHang).filter_by(MaTaiKhoan=ma_tai_khoan).order_by(DonHang.NgayDat.desc()).all()
+
+            result = []
+            for order in orders:
+                # Lấy chi tiết đơn hàng
+                chi_tiets = db.session.query(ChiTiet_DonHang, SanPham).join(SanPham).filter(
+                    ChiTiet_DonHang.MaDonHang == order.MaDonHang
+                ).all()
+
+                order_items = []
+                for chi_tiet, san_pham in chi_tiets:
+                    order_items.append({
+                        'name': san_pham.TenSanPham,
+                        'quantity': chi_tiet.SoLuong,
+                        'price': float(chi_tiet.DonGia),
+                        'subtotal': float(chi_tiet.DonGia) * chi_tiet.SoLuong
+                    })
+
+                result.append({
+                    'id': order.MaDonHang,
+                    'date': order.NgayDat.strftime('%d/%m/%Y %H:%M'),
+                    'status': order.Status,
+                    'total': float(order.TongTien),
+                    'items': order_items,
+                    'can_cancel': order.Status == 'pending'
+                })
+
+            return result
+        except Exception as e:
+            print(f"Error getting user orders: {e}")
+            return []
+
+    @staticmethod
+    def cancel_order(ma_tai_khoan, ma_don_hang):
+        """Hủy đơn hàng"""
+        try:
+            # Kiểm tra đơn hàng có thuộc về user không
+            order = DonHang.query.filter_by(MaDonHang=ma_don_hang, MaTaiKhoan=ma_tai_khoan).first()
+
+            if not order:
+                return False, "Không tìm thấy đơn hàng"
+
+            if order.Status != 'pending':
+                return False, "Không thể hủy đơn hàng này"
+
+            # Cập nhật trạng thái
+            order.Status = 'canceled'
+            db.session.commit()
+
+            return True, "Hủy đơn hàng thành công"
+
+        except Exception as e:
+            db.session.rollback()
+            return False, f"Lỗi: {str(e)}"

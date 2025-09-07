@@ -1,0 +1,127 @@
+/* Checkout Page Styles */
+
+.checkout-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+}
+
+.section-title {
+    border-left: 4px solid #667eea;
+    padding-left: 15px;
+    margin-bottom: 1.5rem;
+}
+
+.address-card {
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.address-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+}
+
+.address-card.selected {
+    border-color: #667eea;
+    background-color: #f8f9ff;
+}
+
+.product-summary {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 1rem;
+}
+
+.order-summary {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+}
+
+.confirm-btn {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border: none;
+    padding: 12px 0;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.confirm-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+}
+
+/* Responsive improvements */
+@media (max-width: 1200px) {
+    .container {
+        max-width: 100%;
+        padding: 0 15px;
+    }
+}
+
+/* Mở rộng khung sản phẩm */
+.product-summary {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.product-summary .row {
+    align-items: center;
+}
+
+.product-summary img {
+    width: 80px !important;
+    height: 80px !important;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+/* Cải thiện responsive cho mobile */
+@media (max-width: 768px) {
+    .checkout-header {
+        padding: 1rem 0;
+    }
+
+    .checkout-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .product-summary {
+        padding: 1rem;
+    }
+
+    .product-summary img {
+        width: 60px !important;
+        height: 60px !important;
+    }
+
+    .order-summary {
+        margin-top: 2rem;
+    }
+}
+
+/* Cải thiện hiển thị address card */
+.address-card {
+    min-height: 120px;
+    padding: 1rem !important;
+}
+
+.address-card .form-check-label {
+    width: 100%;
+    cursor: pointer;
+}
+
+/* Cải thiện spacing */
+.section-title {
+    margin-bottom: 2rem;
+}
+
+.mb-4 {
+    margin-bottom: 2.5rem !important;
+}
