@@ -87,14 +87,36 @@ def add_product():
             mo_ta = request.form.get('moTa', '').strip()
             ma_loai = request.form.get('maLoai')
 
-            # THÊM XỬ LÝ HÌNH ẢNH
-            hinh_anh_url = request.form.get('hinhAnhUrl', '').strip()  # URL từ Cloudinary
+            # XỬ LÝ HÌNH ẢNH
+            # Ưu tiên lấy URL từ hidden input (khi upload qua API /api/admin/upload-image)
+            hinh_anh_url = request.form.get('hinhAnhUrl')
+
+            # Nếu không có URL thì fallback sang upload trực tiếp file từ form
+            if not hinh_anh_url and 'hinhAnh' in request.files and request.files['hinhAnh'].filename != '':
+                file = request.files['hinhAnh']
+                try:
+                    import cloudinary.uploader
+                    result = cloudinary.uploader.upload(
+                        file,
+                        folder="pet_shop/products",
+                        resource_type="auto",
+                        transformation=[
+                            {'quality': 'auto:good'},
+                            {'format': 'auto'},
+                            {'width': 800, 'height': 600, 'crop': 'limit'}
+                        ]
+                    )
+                    hinh_anh_url = result['secure_url']
+                except Exception as e:
+                    flash(f'Lỗi upload ảnh: {str(e)}', 'error')
+                    categories = Loai.query.all()
+                    return render_template('manage_product.html', categories=categories, mode='add')
 
             # Validate
             if not all([ten_san_pham, gia_ban, so_luong, ma_loai]):
                 flash('Vui lòng điền đầy đủ thông tin bắt buộc!', 'error')
                 categories = Loai.query.all()
-                return render_template('admin/add_product.html', categories=categories)
+                return render_template('manage_product.html', categories=categories, mode='add')
 
             # Tạo sản phẩm mới
             san_pham = SanPham(
@@ -121,11 +143,13 @@ def add_product():
 
     try:
         categories = Loai.query.all()
-        return render_template('admin/add_product.html', categories=categories)
+        return render_template('manage_product.html', categories=categories, mode='add')
     except Exception as e:
         flash(f'Lỗi: {str(e)}', 'error')
         return redirect(url_for('admin.manage_products'))
 
+
+# Mở file: admin_controller.py
 
 @admin_bp.route('/products/edit/<int:product_id>', methods=['GET', 'POST'])
 def edit_product(product_id):
@@ -135,10 +159,12 @@ def edit_product(product_id):
         return redirect(url_for('admin_login'))
 
     try:
+        # Lấy sản phẩm từ DB, nếu không có sẽ báo lỗi 404
         product = SanPham.query.get_or_404(product_id)
 
+        # Xử lý khi người dùng nhấn nút "Lưu" trên form
         if request.method == 'POST':
-            # Cập nhật thông tin
+            # Cập nhật thông tin từ form
             product.TenSanPham = request.form.get('tenSanPham', '').strip()
             product.ChiPhi = float(request.form.get('chiPhi', '0')) if request.form.get('chiPhi') else None
             product.GiaNhap = float(request.form.get('giaNhap', '0')) if request.form.get('giaNhap') else None
@@ -148,16 +174,29 @@ def edit_product(product_id):
             product.MoTa = request.form.get('moTa', '').strip()
             product.MaLoai = int(request.form.get('maLoai'))
 
+            # Ưu tiên lấy URL từ hidden input
+            hinh_anh_url = request.form.get('hinhAnhUrl')
+
+            # Nếu có URL hình ảnh mới thì cập nhật, không thì giữ nguyên ảnh cũ
+            if hinh_anh_url:
+                product.HinhAnh = hinh_anh_url
+            # ===============================================
+
             db.session.commit()
             flash('Cập nhật sản phẩm thành công!', 'success')
             return redirect(url_for('admin.manage_products'))
 
+        # Xử lý khi người dùng bấm nút "Sửa" để mở form
+        # (Phần này có thể không chạy nếu bạn load data bằng JS, nhưng sửa lại cho đúng)
         categories = Loai.query.all()
-        return render_template('edit_product.html', product=product, categories=categories)
+
+        # === SỬA LỖI 2: RENDER ĐÚNG TEMPLATE 'manage_product.html' ===
+        return render_template('manage_product.html', product=product, categories=categories, mode='edit')
+        # =============================================================
 
     except Exception as e:
         db.session.rollback()
-        flash(f'Lỗi: {str(e)}', 'error')
+        flash(f'Lỗi khi chỉnh sửa sản phẩm: {str(e)}', 'error')
         return redirect(url_for('admin.manage_products'))
 
 

@@ -21,7 +21,7 @@ let currentEditId = null;
 const API_BASE = '';
 
 // Initialize
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     loadProductsFromAPI();
     initializeEventListeners();
 });
@@ -71,8 +71,8 @@ async function loadProductsFromAPI() {
 async function saveProduct(productData) {
     try {
         const url = currentEditId ?
-    `/admin/products/edit/${currentEditId}` :
-    `/admin/products/add`;
+            `/admin/products/edit/${currentEditId}` :
+            `/admin/products/add`;
         const method = currentEditId ? 'POST' : 'POST';
 
         const formData = new FormData();
@@ -85,6 +85,15 @@ async function saveProduct(productData) {
         formData.append('chiPhi', productData.cost || '0');
         formData.append('giaNhap', productData.importPrice || '0');
 
+        const hinhAnhUrl = document.getElementById('hinhAnhUrl').value;
+        if (hinhAnhUrl) {
+            formData.append('hinhAnhUrl', hinhAnhUrl);
+        }
+        const hinhAnhFile = document.getElementById('hinhAnh').files[0];
+        if (hinhAnhFile) {
+            formData.append('hinhAnh', hinhAnhFile);
+        }
+
         const response = await fetch(url, {
             method: method,
             body: formData
@@ -93,7 +102,7 @@ async function saveProduct(productData) {
         if (response.ok) {
             // Reload data after successful save
             await loadProductsFromAPI();
-            return { success: true };
+            return {success: true};
         } else {
             const errorText = await response.text();
             throw new Error(errorText || 'Lỗi khi lưu sản phẩm');
@@ -101,7 +110,7 @@ async function saveProduct(productData) {
 
     } catch (error) {
         console.error('Error saving product:', error);
-        return { success: false, message: error.message };
+        return {success: false, message: error.message};
     }
 }
 
@@ -119,19 +128,19 @@ async function deleteProductAPI(productId) {
 
     } catch (error) {
         console.error('Error deleting product:', error);
-        return { success: false, message: error.message };
+        return {success: false, message: error.message};
     }
 }
 
 // Event Listeners
 function initializeEventListeners() {
     // Add product button
-    addProductBtn.addEventListener('click', function() {
+    addProductBtn.addEventListener('click', function () {
         openProductModal();
     });
 
     // Product form submit
-    productForm.addEventListener('submit', function(e) {
+    productForm.addEventListener('submit', function (e) {
         e.preventDefault();
         handleFormSubmit();
     });
@@ -268,7 +277,7 @@ function renderProductsTable() {
 
         // Determine status class and text
         let statusClass, statusText;
-        switch(product.status) {
+        switch (product.status) {
             case 'in-stock':
                 statusClass = 'status-in-stock';
                 statusText = 'Còn hàng';
@@ -387,10 +396,10 @@ function viewProduct(productId) {
                         <p><strong>Giá bán:</strong> ${formatCurrency(product.price)}</p>
                         <p><strong>Số lượng:</strong> ${product.quantity}</p>
                         <p><strong>Trạng thái:</strong> 
-                            <span class="badge ${product.status === 'in-stock' ? 'bg-success' : 
-                                              product.status === 'low-stock' ? 'bg-warning' : 'bg-danger'}">
-                                ${product.status === 'in-stock' ? 'Còn hàng' : 
-                                  product.status === 'low-stock' ? 'Sắp hết' : 'Hết hàng'}
+                            <span class="badge ${product.status === 'in-stock' ? 'bg-success' :
+            product.status === 'low-stock' ? 'bg-warning' : 'bg-danger'}">
+                                ${product.status === 'in-stock' ? 'Còn hàng' :
+            product.status === 'low-stock' ? 'Sắp hết' : 'Hết hàng'}
                             </span>
                         </p>
                     </div>
@@ -535,7 +544,7 @@ function handleImport() {
     fileInput.type = 'file';
     fileInput.accept = '.xlsx,.xls,.csv';
 
-    fileInput.onchange = function(e) {
+    fileInput.onchange = function (e) {
         const file = e.target.files[0];
         if (file) {
             Swal.fire({

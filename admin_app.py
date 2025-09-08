@@ -1,13 +1,14 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
-import cloudinary
 from flask_sqlalchemy import SQLAlchemy
 from config import Config
 from models import db
+import cloudinary.uploader
 from services.services import AuthService, ProductService, OrderService
 
 # Import admin controller
 try:
     from controllers.admin_controller import admin_bp
+
     admin_imported = True
 except ImportError:
     admin_imported = False
@@ -92,6 +93,7 @@ def admin_index():
         return redirect(url_for('admin_login'))
     return redirect(url_for('admin.dashboard'))
 
+
 @admin_app.route('/api/admin/upload-image', methods=['POST'])
 def admin_upload_image():
     if not require_admin_auth():
@@ -111,16 +113,24 @@ def admin_upload_image():
                 file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
             return jsonify({'error': 'Invalid file type'}), 400
 
-        # Upload lên Cloudinary
+        # Tạo unique filename để tránh cache và conflict
+        import uuid
+        import time
+        unique_filename = f"product_{int(time.time())}_{uuid.uuid4().hex[:8]}"
+
+        # Upload lên Cloudinary với overwrite=True để tránh conflict
         result = cloudinary.uploader.upload(
             file,
             folder="pet_shop/products",
+            public_id=unique_filename,
             resource_type="auto",
             transformation=[
                 {'quality': 'auto:good'},
                 {'format': 'auto'},
                 {'width': 800, 'height': 600, 'crop': 'limit'}
-            ]
+            ],
+            overwrite=True,  # Thay đổi từ False thành True
+            invalidate=True  # Thêm dòng này để clear cache
         )
 
         return jsonify({
@@ -133,7 +143,8 @@ def admin_upload_image():
 
     except Exception as e:
         print(f"Upload error: {str(e)}")
-        return jsonify({'error': 'Upload failed'}), 500
+        return jsonify({'error': 'Upload failed', 'details': str(e)}), 500
+
 
 # Context processor cho admin
 @admin_app.context_processor
@@ -154,7 +165,8 @@ def api_admin_products():
         from models import SanPham, Loai
 
         # Lấy tất cả sản phẩm (kể cả ẩn) cho admin
-        products_query = db.session.query(SanPham, Loai).join(Loai, SanPham.MaLoai == Loai.MaLoai).filter(SanPham.TrangThai == 1).all()
+        products_query = db.session.query(SanPham, Loai).join(Loai, SanPham.MaLoai == Loai.MaLoai).filter(
+            SanPham.TrangThai == 1).all()
 
         result = []
         for product_data in products_query:
@@ -209,6 +221,7 @@ def require_admin():
 if admin_imported:
     try:
         from controllers import admin_controller
+
         admin_controller.require_admin = require_admin
     except ImportError:
         print("Warning: Could not patch admin_controller")
