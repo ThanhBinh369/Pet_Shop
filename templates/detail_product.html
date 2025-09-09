@@ -17,13 +17,15 @@
     <div class="row">
         <!-- Product Image -->
         <div class="col-lg-6 mb-4">
-            <div class="product-image-container">
+            <div class="product-image-container"
+                 style="height: 330px; width: 100%; overflow: hidden; background-color: #f8f9fa; border-radius: 8px; display: flex; justify-content: center; align-items: center;">
                 <img src="
 
                         {% if product.image %}{{ product.image }}{% else %}https://via.placeholder.com/500x500?text={{ product.name | urlencode }}{% endif %}"
-                     class="img-fluid rounded shadow"
+                     class="rounded shadow"
                      alt="{{ product.name }}"
-                     id="main-product-image">
+                     id="main-product-image"
+                     style="width: 100%; height: 100%; object-fit: contain;">
 
                 <!-- Thumbnail images -->
                 {% if product.images and product.images|length > 1 %}

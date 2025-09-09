@@ -1,4 +1,8 @@
-// Thêm vào cuối file app.js
+if (window.location.pathname !== '/cart') {
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toàn bộ code hiện tại của app.js
+    });
+}
 
 // Profile page navigation
 $('.list-group-item').click(function (e) {
