@@ -224,6 +224,7 @@ def checkout():
                            total=total,
                            addresses=addresses)
 
+
 # Route đặt hàng
 @app.route('/place-order', methods=['POST'])
 def place_order():
@@ -240,30 +241,76 @@ def place_order():
             flash('Vui lòng chọn địa chỉ giao hàng!', 'error')
             return redirect(url_for('checkout'))
 
-        # Tạo đơn hàng
-        success, result = OrderService.create_order(session['user_id'], address_id)
+        # Lấy giỏ hàng hiện tại
+        cart_items = CartService.get_cart_items(session['user_id'])
+        if not cart_items:
+            flash('Giỏ hàng trống!', 'warning')
+            return redirect(url_for('cart'))
 
-        if success:
-            flash(f'Đặt hàng thành công! Mã đơn hàng: {result}', 'success')
-            return redirect(url_for('order_success', order_id=result))
-        else:
-            flash(result, 'error')
-            return redirect(url_for('checkout'))
+        # Tính tổng tiền
+        total_amount = sum(item['price'] * item['quantity'] for item in cart_items)
+
+        # Tạo đơn hàng mới
+        from models import DonHang, ChiTiet_DonHang, GioHang, GioHang_SanPham
+
+        new_order = DonHang(
+            MaTaiKhoan=session['user_id'],
+            MaDiaChi=int(address_id),
+            TongTien=total_amount,
+            Status='pending'
+        )
+
+        db.session.add(new_order)
+        db.session.flush()  # Để lấy MaDonHang
+
+        # Thêm chi tiết đơn hàng
+        for item in cart_items:
+            order_detail = ChiTiet_DonHang(
+                MaDonHang=new_order.MaDonHang,
+                MaSanPham=item['id'],
+                SoLuong=item['quantity'],
+                DonGia=item['price']
+            )
+            db.session.add(order_detail)
+
+        # Xóa giỏ hàng sau khi đặt hàng
+        user_cart = GioHang.query.filter_by(MaTaiKhoan=session['user_id']).first()
+        if user_cart:
+            GioHang_SanPham.query.filter_by(MaGioHang=user_cart.MaGioHang).delete()
+            user_cart.TongSoLuong = 0
+
+        db.session.commit()
+
+        flash(f'Đặt hàng thành công! Mã đơn hàng: {new_order.MaDonHang}', 'success')
+        return redirect(url_for('order_success', order_id=new_order.MaDonHang))
 
     except Exception as e:
+        db.session.rollback()
         flash(f'Lỗi khi đặt hàng: {str(e)}', 'error')
         return redirect(url_for('checkout'))
 
 
-# Route thành công
+# Route thành công - chỉ hiển thị thông báo
+# Route thành công - chỉ hiển thị thông báo
 @app.route('/order-success/<int:order_id>')
 def order_success(order_id):
     if 'user_id' not in session:
         flash('Vui lòng đăng nhập!', 'warning')
         return redirect(url_for('auth.login'))
 
-    return render_template('order_success.html', order_id=order_id)
+    # Kiểm tra đơn hàng có tồn tại và thuộc về user không
+    from models import DonHang
+    order = DonHang.query.filter_by(
+        MaDonHang=order_id,
+        MaTaiKhoan=session['user_id']
+    ).first()
 
+    if not order:
+        flash('Đơn hàng không tồn tại!', 'error')
+        return redirect(url_for('index'))
+
+    flash(f'Đặt hàng thành công! Mã đơn hàng: #{order_id}. Chúng tôi sẽ liên hệ với bạn sớm nhất.', 'success')
+    return redirect(url_for('index'))  # hoặc redirect(url_for('my_orders'))
 
 # Route quản lý đơn hàng
 @app.route('/my-orders')
@@ -272,9 +319,37 @@ def my_orders():
         flash('Vui lòng đăng nhập!', 'warning')
         return redirect(url_for('auth.login'))
 
-    # Lấy danh sách đơn hàng của user
-    orders = OrderService.get_user_orders(session['user_id'])
-    return render_template('my_orders.html', orders=orders)
+    try:
+        from models import DonHang, DiaChi
+
+        # Lấy danh sách đơn hàng của user
+        orders = db.session.query(DonHang, DiaChi).join(
+            DiaChi, DonHang.MaDiaChi == DiaChi.MaDiaChi
+        ).filter(
+            DonHang.MaTaiKhoan == session['user_id']
+        ).order_by(DonHang.NgayDat.desc()).all()
+
+        # Format dữ liệu cho template
+        formatted_orders = []
+        for order, address in orders:
+            formatted_orders.append({
+                'id': order.MaDonHang,
+                'date': order.NgayDat,
+                'status': order.Status,
+                'total': float(order.TongTien),
+                'address': {
+                    'name': address.TenNguoiNhan,
+                    'phone': address.SoDienThoai,
+                    'address': address.DiaChi
+                },
+                'details': order.chi_tiets
+            })
+
+        return render_template('my_orders.html', orders=formatted_orders)
+
+    except Exception as e:
+        flash(f'Lỗi khi tải đơn hàng: {str(e)}', 'error')
+        return render_template('my_orders.html', orders=[])
 
 
 # Route hủy đơn hàng
@@ -284,14 +359,29 @@ def cancel_order(order_id):
         return jsonify({'success': False, 'message': 'Vui lòng đăng nhập!'}), 401
 
     try:
-        success, message = OrderService.cancel_order(session['user_id'], order_id)
+        from models import DonHang
 
-        if success:
-            return jsonify({'success': True, 'message': message})
-        else:
-            return jsonify({'success': False, 'message': message}), 400
+        # Tìm đơn hàng
+        order = DonHang.query.filter_by(
+            MaDonHang=order_id,
+            MaTaiKhoan=session['user_id']
+        ).first()
+
+        if not order:
+            return jsonify({'success': False, 'message': 'Đơn hàng không tồn tại!'}), 404
+
+        # Chỉ cho phép hủy đơn hàng đang pending
+        if order.Status != 'pending':
+            return jsonify({'success': False, 'message': 'Không thể hủy đơn hàng này!'}), 400
+
+        # Cập nhật trạng thái
+        order.Status = 'canceled'
+        db.session.commit()
+
+        return jsonify({'success': True, 'message': 'Đã hủy đơn hàng thành công!'})
 
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': f'Lỗi: {str(e)}'}), 500
 
 # Helper function để kiểm tra đăng nhập và thêm thông tin cart

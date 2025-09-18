@@ -1,6 +1,8 @@
 // Checkout Page JavaScript
 
 $(document).ready(function() {
+    // Debug - kiểm tra địa chỉ có load không
+    console.log('Number of addresses found:', $('.address-card').length);
     // Xử lý chọn địa chỉ
     $('.address-card').on('click', function() {
         $('.address-card').removeClass('selected');

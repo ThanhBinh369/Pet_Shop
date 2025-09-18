@@ -51,19 +51,37 @@
                             {% if addresses %}
                                 {% for address in addresses %}
                                     <div class="col-md-6 mb-3">
-                                        <div class="address-card card p-3 {% if address.DiaChiMacDinh %}selected{% endif %}"
-                                             data-address-id="{{ address.MaDiaChi }}">
+                                        <div class="address-card border rounded p-3 {% if address.DiaChiMacDinh or address.mac_dinh %}border-primary selected{% endif %}"
+                                             data-address-id="{{ address.MaDiaChi or address.id }}">
                                             <div class="form-check">
                                                 <input class="form-check-input" type="radio" name="address_id"
-                                                       id="address{{ address.MaDiaChi }}" value="{{ address.MaDiaChi }}"
-                                                       {% if address.DiaChiMacDinh %}checked{% endif %}>
-                                                <label class="form-check-label" for="address{{ address.MaDiaChi }}">
-                                                    <div class="fw-bold">{{ address.TenNguoiNhan }}</div>
-                                                    <div class="text-muted small">{{ address.SoDienThoai }}</div>
-                                                    <div class="mt-1">{{ address.DiaChi }}</div>
-                                                    {% if address.DiaChiMacDinh %}
-                                                        <span class="badge bg-primary mt-2">Mặc định</span>
-                                                    {% endif %}
+                                                       id="address{{ address.MaDiaChi or address.id }}"
+                                                       value="{{ address.MaDiaChi or address.id }}"
+                                                       {% if address.DiaChiMacDinh or address.mac_dinh %}checked{% endif %}>
+                                                <label class="form-check-label w-100"
+                                                       for="address{{ address.MaDiaChi or address.id }}">
+                                                    <h6 class="mb-1">
+                                                        {{ address.TenNguoiNhan or address.ten_nguoi_nhan }}
+                                                        {% if address.DiaChiMacDinh or address.mac_dinh %}
+                                                            <span class="badge bg-primary">Mặc định</span>
+                                                        {% endif %}
+                                                    </h6>
+                                                    <p class="mb-1">
+                                                        <i class="bi bi-telephone"></i>
+                                                        {{ address.SoDienThoai or address.so_dien_thoai }}
+                                                    </p>
+                                                    <p class="mb-0">
+                                                        <i class="bi bi-geo-alt"></i>
+                                                        {% if address.dia_chi_day_du %}
+                                                            {{ address.dia_chi_day_du }}
+                                                        {% else %}
+                                                            {{ address.DiaChi or address.dia_chi }}
+                                                            {% if address.QuanHuyen or address.quan_huyen %},
+                                                                {{ address.QuanHuyen or address.quan_huyen }}{% endif %}
+                                                            {% if address.TinhThanh or address.tinh_thanh %},
+                                                                {{ address.TinhThanh or address.tinh_thanh }}{% endif %}
+                                                        {% endif %}
+                                                    </p>
                                                 </label>
                                             </div>
                                         </div>
@@ -72,8 +90,10 @@
                             {% else %}
                                 <div class="col-12">
                                     <div class="alert alert-warning">
-                                        <i class="fas fa-exclamation-triangle me-2"></i>
-                                        Bạn chưa có địa chỉ giao hàng. Vui lòng thêm địa chỉ trước khi đặt hàng.
+                                        <i class="bi bi-exclamation-triangle"></i>
+                                        Bạn chưa có địa chỉ giao hàng nào.
+                                        <a href="{{ url_for('profile') }}#address" class="alert-link">Thêm địa chỉ
+                                            ngay</a>
                                     </div>
                                 </div>
                             {% endif %}
@@ -100,12 +120,6 @@
                                                checked>
                                     </div>
                                 </div>
-                                <div class="col-md-2 col-3">
-                                    <img src="{{ item.image or 'https://via.placeholder.com/80x80/f8f9fa/6c757d?text=Pet' }}"
-                                         alt="{{ item.name }}"
-                                         class="img-fluid rounded"
-                                         style="width: 60px; height: 60px; object-fit: cover;">
-                                </div>
                                 <div class="col-md-3 col-6">
                                     <h6 class="mb-1">{{ item.name }}</h6>
                                     <small class="text-muted">{{ item.category or 'Sản phẩm thú cưng' }}</small>
@@ -124,8 +138,8 @@
                                 </div>
                             </div>
                             <!-- Hidden inputs để gửi thông tin sản phẩm được chọn -->
-                            <input type="hidden" name="selected_products[]" value="{{ item.id }}" disabled>
-                            <input type="hidden" name="selected_quantities[]" value="{{ item.quantity }}" disabled>
+                            <input type="hidden" name="selected_products[]" value="{{ item.id }}">
+                            <input type="hidden" name="selected_quantities[]" value="{{ item.quantity }}">
                         </div>
                     {% endfor %}
                 </div>
