@@ -2,7 +2,8 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 import cloudinary
 from flask_sqlalchemy import SQLAlchemy
 from config import Config
-from models import db
+from models import db, TaiKhoan, DangNhap, DonHang, ChiTiet_DonHang, DiaChi, SanPham, GioHang, GioHang_SanPham
+from sqlalchemy import desc
 from services import AuthService, ProductService, CartService, OrderService
 
 # Import controllers
@@ -290,8 +291,7 @@ def place_order():
         return redirect(url_for('checkout'))
 
 
-# Route thành công - chỉ hiển thị thông báo
-# Route thành công - chỉ hiển thị thông báo
+
 @app.route('/order-success/<int:order_id>')
 def order_success(order_id):
     if 'user_id' not in session:
@@ -312,6 +312,7 @@ def order_success(order_id):
     flash(f'Đặt hàng thành công! Mã đơn hàng: #{order_id}. Chúng tôi sẽ liên hệ với bạn sớm nhất.', 'success')
     return redirect(url_for('index'))  # hoặc redirect(url_for('my_orders'))
 
+
 # Route quản lý đơn hàng
 @app.route('/my-orders')
 def my_orders():
@@ -319,47 +320,23 @@ def my_orders():
         flash('Vui lòng đăng nhập!', 'warning')
         return redirect(url_for('auth.login'))
 
-    try:
-        from models import DonHang, DiaChi
-
-        # Lấy danh sách đơn hàng của user
-        orders = db.session.query(DonHang, DiaChi).join(
-            DiaChi, DonHang.MaDiaChi == DiaChi.MaDiaChi
-        ).filter(
-            DonHang.MaTaiKhoan == session['user_id']
-        ).order_by(DonHang.NgayDat.desc()).all()
-
-        # Format dữ liệu cho template
-        formatted_orders = []
-        for order, address in orders:
-            formatted_orders.append({
-                'id': order.MaDonHang,
-                'date': order.NgayDat,
-                'status': order.Status,
-                'total': float(order.TongTien),
-                'address': {
-                    'name': address.TenNguoiNhan,
-                    'phone': address.SoDienThoai,
-                    'address': address.DiaChi
-                },
-                'details': order.chi_tiets
-            })
-
-        return render_template('my_orders.html', orders=formatted_orders)
-
-    except Exception as e:
-        flash(f'Lỗi khi tải đơn hàng: {str(e)}', 'error')
-        return render_template('my_orders.html', orders=[])
+    # Chuyển hướng về profile với tab orders
+    return redirect(url_for('auth.profile') + '#orders')
 
 
 # Route hủy đơn hàng
-@app.route('/cancel-order/<int:order_id>', methods=['POST'])
-def cancel_order(order_id):
+@app.route('/cancel-order', methods=['POST'])
+def cancel_order():
+    """Hủy đơn hàng"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'message': 'Vui lòng đăng nhập!'}), 401
 
     try:
-        from models import DonHang
+        data = request.get_json()
+        order_id = data.get('order_id')
+
+        if not order_id:
+            return jsonify({'success': False, 'message': 'Thiếu thông tin đơn hàng!'}), 400
 
         # Tìm đơn hàng
         order = DonHang.query.filter_by(
@@ -368,21 +345,85 @@ def cancel_order(order_id):
         ).first()
 
         if not order:
-            return jsonify({'success': False, 'message': 'Đơn hàng không tồn tại!'}), 404
+            return jsonify({'success': False, 'message': 'Không tìm thấy đơn hàng!'}), 404
 
-        # Chỉ cho phép hủy đơn hàng đang pending
+        # Kiểm tra trạng thái đơn hàng
         if order.Status != 'pending':
-            return jsonify({'success': False, 'message': 'Không thể hủy đơn hàng này!'}), 400
+            return jsonify({
+                'success': False,
+                'message': 'Chỉ có thể hủy đơn hàng đang chờ xử lý!'
+            }), 400
 
-        # Cập nhật trạng thái
+        # Cập nhật trạng thái đơn hàng thành 'canceled'
         order.Status = 'canceled'
+
+        # Hoàn lại số lượng sản phẩm trong kho
+        for chi_tiet in order.chi_tiets:
+            san_pham = SanPham.query.get(chi_tiet.MaSanPham)
+            if san_pham:
+                san_pham.SoLuong += chi_tiet.SoLuong
+
+        # Lưu thay đổi
         db.session.commit()
 
-        return jsonify({'success': True, 'message': 'Đã hủy đơn hàng thành công!'})
+        return jsonify({
+            'success': True,
+            'message': 'Hủy đơn hàng thành công!'
+        })
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'Lỗi: {str(e)}'}), 500
+        return jsonify({
+            'success': False,
+            'message': f'Có lỗi xảy ra: {str(e)}'
+        }), 500
+
+
+# Lấy chi tiết đơn hàng
+@app.route('/api/order-detail/<int:order_id>')
+def api_order_detail(order_id):
+    """API lấy chi tiết đơn hàng cho profile"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập!'}), 401
+
+    try:
+        # Tìm đơn hàng của user hiện tại
+        order = DonHang.query.filter_by(
+            MaDonHang=order_id,
+            MaTaiKhoan=session['user_id']
+        ).first()
+
+        if not order:
+            return jsonify({'success': False, 'message': 'Không tìm thấy đơn hàng!'}), 404
+
+        return jsonify({
+            'success': True,
+            'order': {
+                'id': order.MaDonHang,
+                'date': order.NgayDat.strftime('%d/%m/%Y %H:%M'),
+                'status': order.Status,
+                'total': float(order.TongTien),
+                'address': {
+                    'recipient': order.dia_chi.TenNguoiNhan,
+                    'phone': order.dia_chi.SoDienThoai,
+                    'address': f"{order.dia_chi.DiaChi}, {order.dia_chi.QuanHuyen}, {order.dia_chi.TinhThanh}"
+                },
+                'items': [{
+                    'name': item.san_pham.TenSanPham,
+                    'quantity': item.SoLuong,
+                    'price': float(item.DonGia),
+                    'total': float(item.SoLuong * item.DonGia),
+                    'image': item.san_pham.HinhAnh
+                } for item in order.chi_tiets]
+            }
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Có lỗi xảy ra: {str(e)}'
+        }), 500
+
 
 # Helper function để kiểm tra đăng nhập và thêm thông tin cart
 @app.context_processor

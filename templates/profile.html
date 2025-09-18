@@ -110,22 +110,92 @@
                 </div>
 
                 <!-- Order History Section -->
-                <div id="orders" class="card mt-4">
+                <div id="orders" class="card mt-4" style="display: none;">
                     <div class="card-header">
                         <h5 class="mb-0">Lịch sử đơn hàng</h5>
                     </div>
                     <div class="card-body">
-                        <p class="text-muted">Chức năng này sẽ được cập nhật sớm.</p>
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i>
-                            Bạn chưa có đơn hàng nào. <a href="{{ url_for('shop') }}" class="alert-link">Mua sắm
-                            ngay</a>
-                        </div>
+                        {% if orders %}
+                            {% for order in orders %}
+                                <div class="border rounded p-3 mb-3">
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <h6 class="mb-2">Đơn hàng #{{ order.MaDonHang }}</h6>
+                                            <p class="mb-1 text-muted">Ngày
+                                                đặt: {{ order.NgayDat.strftime('%d/%m/%Y %H:%M') }}</p>
+                                            <p class="mb-1">
+                                <span class="badge
+                                    {% if order.Status == 'pending' %}bg-warning text-dark
+                                    {% elif order.Status == 'shipped' %}bg-info
+                                    {% elif order.Status == 'delivered' %}bg-success
+                                    {% elif order.Status == 'canceled' %}bg-danger
+                                    {% endif %}">
+                                    {% if order.Status == 'pending' %}Đang chờ xử lý
+                                    {% elif order.Status == 'shipped' %}Đang giao
+                                    {% elif order.Status == 'delivered' %}Đã giao
+                                    {% elif order.Status == 'canceled' %}Đã hủy
+                                    {% endif %}
+                                </span>
+                                            </p>
+                                            <p class="mb-1"><strong>Tổng tiền: {{ "{:,.0f}".format(order.TongTien) }}
+                                                VNĐ</strong></p>
+                                            <p class="mb-0 text-muted">Địa
+                                                chỉ: {{ order.dia_chi.DiaChi }}, {{ order.dia_chi.QuanHuyen }}, {{ order.dia_chi.TinhThanh }}</p>
+                                        </div>
+                                        <div class="col-md-4 text-end">
+                                            {% if order.Status == 'pending' %}
+                                                <button class="btn btn-outline-danger btn-sm cancel-order"
+                                                        data-order-id="{{ order.MaDonHang }}">
+                                                    <i class="bi bi-x-circle"></i> Hủy đơn
+                                                </button>
+                                            {% endif %}
+                                            <button class="btn btn-outline-primary btn-sm mt-2 view-order-detail"
+                                                    data-order-id="{{ order.MaDonHang }}">
+                                                <i class="bi bi-eye"></i> Chi tiết
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <!-- Chi tiết sản phẩm (ẩn mặc định) -->
+                                    <div class="order-details mt-3" id="order-details-{{ order.MaDonHang }}"
+                                         style="display: none;">
+                                        <hr>
+                                        <h6>Sản phẩm trong đơn hàng:</h6>
+                                        {% for item in order.chi_tiets %}
+                                            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                                <div class="d-flex align-items-center">
+                                                    {% if item.san_pham.HinhAnh %}
+                                                        <img src="{{ url_for('static', filename='images/' + item.san_pham.HinhAnh) }}"
+                                                             alt="{{ item.san_pham.TenSanPham }}"
+                                                             class="me-3"
+                                                             style="width: 50px; height: 50px; object-fit: cover;">
+                                                    {% endif %}
+                                                    <div>
+                                                        <p class="mb-0 fw-bold">{{ item.san_pham.TenSanPham }}</p>
+                                                        <small class="text-muted">Số lượng: {{ item.SoLuong }}
+                                                            × {{ "{:,.0f}".format(item.DonGia) }} VNĐ</small>
+                                                    </div>
+                                                </div>
+                                                <div class="text-end">
+                                                    <span class="fw-bold">{{ "{:,.0f}".format(item.SoLuong * item.DonGia) }} VNĐ</span>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i>
+                                Bạn chưa có đơn hàng nào. <a href="{{ url_for('shop') }}" class="alert-link">Mua sắm
+                                ngay</a>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
 
+
                 <!-- Security Section -->
-                <div id="security" class="card mt-4">
+                <div id="security" class="card mt-4" style="display: none;">
                     <div class="card-header">
                         <h5 class="mb-0">Bảo mật tài khoản</h5>
                     </div>
@@ -140,5 +210,4 @@
         </div>
     </div>
 
-    <!-- CSS được load từ custom.css -->
 {% endblock %}

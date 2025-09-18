@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from services import AuthService
-from models import TaiKhoan, DangNhap
+from models import TaiKhoan, DangNhap, DonHang, ChiTiet_DonHang, DiaChi
+from sqlalchemy import desc
 
 # Tạo blueprint cho authentication
 auth_bp = Blueprint('auth', __name__)
@@ -40,6 +41,8 @@ def login():
     return render_template('login.html')
 
 
+# Trong auth_controller.py, thay thế method profile() hiện tại:
+
 @auth_bp.route('/profile')
 def profile():
     """Trang thông tin cá nhân"""
@@ -76,7 +79,11 @@ def profile():
         # Lấy danh sách địa chỉ
         addresses = AuthService.get_user_addresses(session['user_id'])
 
-        return render_template('profile.html', user=user_info, addresses=addresses)
+        # Lấy danh sách đơn hàng (sắp xếp theo ngày đặt mới nhất)
+        orders = DonHang.query.filter_by(MaTaiKhoan=session['user_id']).order_by(desc(DonHang.NgayDat)).all()
+
+        # Truyền orders vào template
+        return render_template('profile.html', user=user_info, addresses=addresses, orders=orders)
 
     except Exception as e:
         flash(f'Có lỗi xảy ra: {str(e)}', 'error')
