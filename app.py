@@ -312,56 +312,5 @@ def inject_user():
     )
 
 
-# Route update address
-@app.route('/update-address', methods=['POST'])
-def update_address():
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập!'}), 401
-
-    try:
-        data = request.get_json()
-        address_id = data.get('address_id')
-        ten_nguoi_nhan = data.get('ten_nguoi_nhan', '').strip()
-        so_dien_thoai = data.get('so_dien_thoai', '').strip()
-        dia_chi = data.get('dia_chi', '').strip()
-        quan_huyen = data.get('quan_huyen', '').strip()
-        tinh_thanh = data.get('tinh_thanh', '').strip()
-        mac_dinh = data.get('mac_dinh', False)
-
-        success, message = AuthService.update_address(
-            session['user_id'], address_id, ten_nguoi_nhan, so_dien_thoai,
-            dia_chi, quan_huyen, tinh_thanh, mac_dinh
-        )
-
-        if success:
-            return jsonify({'success': True, 'message': message})
-        else:
-            return jsonify({'success': False, 'message': message}), 400
-
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'Có lỗi xảy ra: {str(e)}'}), 500
-
-
-# Route delete address
-@app.route('/delete-address', methods=['POST'])
-def delete_address():
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'message': 'Vui lòng đăng nhập!'}), 401
-
-    try:
-        data = request.get_json()
-        address_id = data.get('address_id')
-
-        success, message = AuthService.delete_address(session['user_id'], address_id)
-
-        if success:
-            return jsonify({'success': True, 'message': message})
-        else:
-            return jsonify({'success': False, 'message': message}), 400
-
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'Có lỗi xảy ra: {str(e)}'}), 500
-
-
 if __name__ == '__main__':
     app.run(debug=True)

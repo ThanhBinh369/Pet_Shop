@@ -3,7 +3,7 @@
 
 {% block content %}
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Products</h1>
+        <h1>Sản Phẩm</h1>
         <div class="d-flex align-items-center gap-3">
             <span class="text-muted">{{ products|length }} products found</span>
         </div>
@@ -14,15 +14,15 @@
         <div class="col-md-12">
             <form method="GET" class="row g-3">
                 <div class="col-md-4">
-                    <label for="search" class="form-label">Search Products</label>
+                    <label for="search" class="form-label">Tìm Kiếm Sản Phẩm</label>
                     <input type="text" class="form-control" id="search" name="search"
-                           value="{{ current_search }}" placeholder="Search by name, brand, description...">
+                           value="{{ current_search }}" placeholder="Tìm Kiếm ...">
                 </div>
 
                 <div class="col-md-3">
-                    <label for="category" class="form-label">Category</label>
+                    <label for="category" class="form-label">Lọc Theo Loại</label>
                     <select class="form-select" id="category" name="category">
-                        <option value="">All Categories</option>
+                        <option value="">Tất cả loại</option>
                         <option value="Thức ăn cho chó"
                                 {% if current_category == 'Thức ăn cho chó' %}selected{% endif %}>Thức ăn cho chó
                         </option>
@@ -42,13 +42,13 @@
                 </div>
 
                 <div class="col-md-3">
-                    <label for="sort" class="form-label">Sort By</label>
+                    <label for="sort" class="form-label">Sắp Xếp Theo</label>
                     <select class="form-select" id="sort" name="sort">
-                        <option value="name" {% if current_sort == 'name' %}selected{% endif %}>Name (A-Z)</option>
-                        <option value="price_low" {% if current_sort == 'price_low' %}selected{% endif %}>Price (Low to
+                        <option value="name" {% if current_sort == 'name' %}selected{% endif %}>Tên (A-Z)</option>
+                        <option value="price_low" {% if current_sort == 'price_low' %}selected{% endif %}>Giá (Low to
                             High)
                         </option>
-                        <option value="price_high" {% if current_sort == 'price_high' %}selected{% endif %}>Price (High
+                        <option value="price_high" {% if current_sort == 'price_high' %}selected{% endif %}>Giá (High
                             to Low)
                         </option>
                     </select>
@@ -56,10 +56,10 @@
 
                 <div class="col-md-2 d-flex align-items-end gap-2">
                     <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-search"></i> Filter
+                        <i class="fas fa-search"></i> Lọc
                     </button>
                     <a href="{{ url_for('product.list_products') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-undo"></i> Clear
+                        <i class="fas fa-undo"></i> Xóa lọc
                     </a>
                 </div>
             </form>
