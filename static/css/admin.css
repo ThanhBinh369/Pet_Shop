@@ -433,3 +433,39 @@ body {
         height: 30px;
     }
 }
+/* Sidebar unified styling - ghi đè các style cũ */
+.sidebar {
+    background: white !important;
+    min-height: calc(100vh - 56px);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+    border-right: 1px solid #e9ecef;
+    padding: 0;
+}
+
+.sidebar .list-group-item {
+    background-color: transparent !important;
+    border: none;
+    color: #495057 !important; /* Màu chữ đen thay vì xám */
+    padding: 15px 25px;
+    border-radius: 0;
+    transition: all 0.3s ease;
+    margin: 2px 10px;
+    border-radius: 8px;
+}
+
+.sidebar .list-group-item:hover {
+    background-color: #f8f9fa !important;
+    color: #495057 !important;
+    transform: translateX(5px);
+}
+
+.sidebar .list-group-item.active {
+    background: linear-gradient(135deg, #f28c38, #d8701f) !important;
+    color: white !important;
+    border-color: transparent;
+}
+
+.sidebar .list-group-item i {
+    margin-right: 10px;
+    width: 20px;
+}
