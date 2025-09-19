@@ -237,19 +237,44 @@ def place_order():
         # Lấy thông tin từ form
         address_id = request.form.get('address_id')
         note = request.form.get('note', '')
+        selected_products = request.form.getlist('selected_products[]')
+        selected_quantities = request.form.getlist('selected_quantities[]')
 
         if not address_id:
             flash('Vui lòng chọn địa chỉ giao hàng!', 'error')
             return redirect(url_for('checkout'))
 
-        # Lấy giỏ hàng hiện tại
-        cart_items = CartService.get_cart_items(session['user_id'])
-        if not cart_items:
+        if not selected_products:
+            flash('Vui lòng chọn ít nhất một sản phẩm!', 'error')
+            return redirect(url_for('checkout'))
+
+        # Lấy giỏ hàng hiện tại để kiểm tra
+        all_cart_items = CartService.get_cart_items(session['user_id'])
+        if not all_cart_items:
             flash('Giỏ hàng trống!', 'warning')
             return redirect(url_for('cart'))
 
-        # Tính tổng tiền
-        total_amount = sum(item['price'] * item['quantity'] for item in cart_items)
+        # Tạo danh sách sản phẩm được chọn với thông tin chi tiết
+        selected_items = []
+        total_amount = 0
+
+        for i, product_id in enumerate(selected_products):
+            quantity = int(selected_quantities[i])
+
+            # Tìm sản phẩm trong giỏ hàng
+            cart_item = next((item for item in all_cart_items if item['id'] == int(product_id)), None)
+
+            if cart_item:
+                selected_items.append({
+                    'id': int(product_id),
+                    'quantity': quantity,
+                    'price': cart_item['price']
+                })
+                total_amount += cart_item['price'] * quantity
+
+        if not selected_items:
+            flash('Không tìm thấy sản phẩm được chọn!', 'error')
+            return redirect(url_for('checkout'))
 
         # Tạo đơn hàng mới
         from models import DonHang, ChiTiet_DonHang, GioHang, GioHang_SanPham
@@ -264,8 +289,8 @@ def place_order():
         db.session.add(new_order)
         db.session.flush()  # Để lấy MaDonHang
 
-        # Thêm chi tiết đơn hàng
-        for item in cart_items:
+        # Thêm chi tiết đơn hàng cho các sản phẩm được chọn
+        for item in selected_items:
             order_detail = ChiTiet_DonHang(
                 MaDonHang=new_order.MaDonHang,
                 MaSanPham=item['id'],
@@ -274,11 +299,27 @@ def place_order():
             )
             db.session.add(order_detail)
 
-        # Xóa giỏ hàng sau khi đặt hàng
+        # Chỉ xóa những sản phẩm được chọn khỏi giỏ hàng
         user_cart = GioHang.query.filter_by(MaTaiKhoan=session['user_id']).first()
         if user_cart:
-            GioHang_SanPham.query.filter_by(MaGioHang=user_cart.MaGioHang).delete()
-            user_cart.TongSoLuong = 0
+            for item in selected_items:
+                # Xóa sản phẩm được chọn khỏi giỏ hàng
+                cart_product = GioHang_SanPham.query.filter_by(
+                    MaGioHang=user_cart.MaGioHang,
+                    MaSanPham=item['id']
+                ).first()
+
+                if cart_product:
+                    if cart_product.SoLuong <= item['quantity']:
+                        # Nếu số lượng đặt hàng >= số lượng trong giỏ, xóa hoàn toàn
+                        db.session.delete(cart_product)
+                    else:
+                        # Nếu chỉ đặt một phần, giảm số lượng trong giỏ
+                        cart_product.SoLuong -= item['quantity']
+
+            # Cập nhật tổng số lượng trong giỏ hàng
+            remaining_items = GioHang_SanPham.query.filter_by(MaGioHang=user_cart.MaGioHang).all()
+            user_cart.TongSoLuong = sum(item.SoLuong for item in remaining_items)
 
         db.session.commit()
 

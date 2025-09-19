@@ -125,3 +125,113 @@
 .mb-4 {
     margin-bottom: 2.5rem !important;
 }
+
+/* Quantity Controls Styling */
+.quantity-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.quantity-controls .btn {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.quantity-input {
+    text-align: center;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.quantity-input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+/* Select All Checkbox Styling */
+#selectAll {
+    margin-right: 8px;
+}
+
+.form-check-label[for="selectAll"] {
+    font-weight: 500;
+    color: #495057;
+}
+
+/* Selected Items Counter */
+#selected-items-count {
+    color: #667eea;
+    font-weight: 600;
+}
+
+/* Improved Product Summary */
+.product-summary {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.product-summary:hover {
+    box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+}
+
+/* Checkbox styling */
+.product-checkbox {
+    width: 18px;
+    height: 18px;
+    margin-right: 10px;
+}
+
+.product-checkbox:checked {
+    background-color: #667eea;
+    border-color: #667eea;
+}
+
+/* Item subtotal highlighting */
+.item-subtotal {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Disabled state for unchecked products */
+.product-summary:has(.product-checkbox:not(:checked)) {
+    opacity: 0.7;
+}
+
+.product-summary:has(.product-checkbox:not(:checked)) .quantity-controls {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+/* Mobile responsive for quantity controls */
+@media (max-width: 768px) {
+    .quantity-controls {
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .quantity-controls .btn {
+        width: 25px;
+        height: 25px;
+        font-size: 12px;
+    }
+
+    .quantity-input {
+        width: 50px !important;
+        font-size: 12px;
+        padding: 2px;
+    }
+}
