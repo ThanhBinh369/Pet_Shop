@@ -153,4 +153,122 @@ footer {
         height: 180px !important;
     }
 }
+/* Order history styling */
+.order-card {
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef !important;
+}
 
+.order-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.order-details {
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+}
+
+.order-status-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.order-item-image {
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+
+.order-summary {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.cancel-order {
+    transition: all 0.2s ease;
+}
+
+.cancel-order:hover {
+    transform: scale(1.05);
+}
+
+.view-order-detail {
+    transition: all 0.2s ease;
+}
+
+.view-order-detail:hover {
+    transform: scale(1.05);
+}
+
+/* Order status colors */
+.status-pending {
+    background-color: #fff3cd !important;
+    color: #856404 !important;
+}
+
+.status-shipped {
+    background-color: #d1ecf1 !important;
+    color: #0c5460 !important;
+}
+
+.status-delivered {
+    background-color: #d4edda !important;
+    color: #155724 !important;
+}
+
+.status-canceled {
+    background-color: #f8d7da !important;
+    color: #721c24 !important;
+}
+
+/* Responsive adjustments for orders */
+@media (max-width: 768px) {
+    .order-card .row > div {
+        margin-bottom: 1rem;
+    }
+
+    .order-card .col-md-4.text-end {
+        text-align: start !important;
+    }
+
+    .order-item-image {
+        width: 40px !important;
+        height: 40px !important;
+    }
+}
+
+/* Order filter styling */
+.order-filter {
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.order-stats {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.order-stat-item {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 0.75rem;
+    text-align: center;
+    min-width: 120px;
+}
+
+.order-stat-number {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #f28c38;
+}
+
+.order-stat-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+}

@@ -115,27 +115,40 @@
                         <h5 class="mb-0">Lịch sử đơn hàng</h5>
                     </div>
                     <div class="card-body">
+                        <!-- Order Filter -->
+                        <div class="order-filter">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <label for="order-status-filter" class="form-label mb-0">Lọc theo trạng
+                                        thái:</label>
+                                    <select id="order-status-filter"
+                                            class="form-select form-select-sm d-inline-block w-auto ms-2">
+                                        <option value="">Tất cả</option>
+                                        <option value="pending">Đang chờ xử lý</option>
+                                        <option value="shipped">Đang giao</option>
+                                        <option value="delivered">Đã giao</option>
+                                        <option value="canceled">Đã hủy</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
                         {% if orders %}
                             {% for order in orders %}
-                                <div class="border rounded p-3 mb-3">
+                                <div class="border rounded p-3 mb-3 order-card" data-status="{{ order.Status }}">
                                     <div class="row">
                                         <div class="col-md-8">
                                             <h6 class="mb-2">Đơn hàng #{{ order.MaDonHang }}</h6>
                                             <p class="mb-1 text-muted">Ngày
                                                 đặt: {{ order.NgayDat.strftime('%d/%m/%Y %H:%M') }}</p>
                                             <p class="mb-1">
-                                <span class="badge
-                                    {% if order.Status == 'pending' %}bg-warning text-dark
-                                    {% elif order.Status == 'shipped' %}bg-info
-                                    {% elif order.Status == 'delivered' %}bg-success
-                                    {% elif order.Status == 'canceled' %}bg-danger
-                                    {% endif %}">
-                                    {% if order.Status == 'pending' %}Đang chờ xử lý
-                                    {% elif order.Status == 'shipped' %}Đang giao
-                                    {% elif order.Status == 'delivered' %}Đã giao
-                                    {% elif order.Status == 'canceled' %}Đã hủy
-                                    {% endif %}
-                                </span>
+                            <span class="badge status-{{ order.Status }}">
+                                {% if order.Status == 'pending' %}Đang chờ xử lý
+                                {% elif order.Status == 'shipped' %}Đang giao
+                                {% elif order.Status == 'delivered' %}Đã giao
+                                {% elif order.Status == 'canceled' %}Đã hủy
+                                {% endif %}
+                            </span>
                                             </p>
                                             <p class="mb-1"><strong>Tổng tiền: {{ "{:,.0f}".format(order.TongTien) }}
                                                 VNĐ</strong></p>
@@ -144,18 +157,19 @@
                                         </div>
                                         <div class="col-md-4 text-end">
                                             {% if order.Status == 'pending' %}
-                                                <button class="btn btn-outline-danger btn-sm cancel-order"
+                                                <button class="btn btn-outline-danger btn-sm cancel-order me-2"
                                                         data-order-id="{{ order.MaDonHang }}">
                                                     <i class="bi bi-x-circle"></i> Hủy đơn
                                                 </button>
                                             {% endif %}
-                                            <button class="btn btn-outline-primary btn-sm mt-2 view-order-detail"
+                                            <button class="btn btn-outline-primary btn-sm view-order-detail"
                                                     data-order-id="{{ order.MaDonHang }}">
                                                 <i class="bi bi-eye"></i> Chi tiết
                                             </button>
                                         </div>
                                     </div>
-                                    <!-- Chi tiết sản phẩm (ẩn mặc định) -->
+
+                                    <!-- Chi tiết sản phẩm -->
                                     <div class="order-details mt-3" id="order-details-{{ order.MaDonHang }}"
                                          style="display: none;">
                                         <hr>
@@ -163,12 +177,6 @@
                                         {% for item in order.chi_tiets %}
                                             <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
                                                 <div class="d-flex align-items-center">
-                                                    {% if item.san_pham.HinhAnh %}
-                                                        <img src="{{ url_for('static', filename='images/' + item.san_pham.HinhAnh) }}"
-                                                             alt="{{ item.san_pham.TenSanPham }}"
-                                                             class="me-3"
-                                                             style="width: 50px; height: 50px; object-fit: cover;">
-                                                    {% endif %}
                                                     <div>
                                                         <p class="mb-0 fw-bold">{{ item.san_pham.TenSanPham }}</p>
                                                         <small class="text-muted">Số lượng: {{ item.SoLuong }}
@@ -180,6 +188,13 @@
                                                 </div>
                                             </div>
                                         {% endfor %}
+                                        <div class="order-summary">
+                                            <div class="d-flex justify-content-between">
+                                                <strong>Tổng cộng:</strong>
+                                                <strong class="text-danger">{{ "{:,.0f}".format(order.TongTien) }}
+                                                    VNĐ</strong>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             {% endfor %}

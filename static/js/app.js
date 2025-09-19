@@ -719,3 +719,178 @@ function updateCartBadge(count) {
         }
     }
 }
+// Order history functionality
+$(document).ready(function() {
+    // View order detail button
+    $(document).on('click', '.view-order-detail', function () {
+        const orderId = $(this).data('order-id');
+        const detailsDiv = $('#order-details-' + orderId);
+
+        if (detailsDiv.is(':visible')) {
+            detailsDiv.slideUp(300);
+            $(this).html('<i class="bi bi-eye"></i> Chi tiết');
+        } else {
+            // Ẩn tất cả chi tiết đơn hàng khác
+            $('.order-details').slideUp(300);
+            $('.view-order-detail').html('<i class="bi bi-eye"></i> Chi tiết');
+
+            // Hiển thị chi tiết đơn hàng này
+            detailsDiv.slideDown(300);
+            $(this).html('<i class="bi bi-eye-slash"></i> Ẩn chi tiết');
+        }
+    });
+
+    // Cancel order button
+    $(document).on('click', '.cancel-order', function () {
+        const orderId = $(this).data('order-id');
+
+        Swal.fire({
+            title: 'Xác nhận hủy đơn hàng',
+            text: `Bạn có chắc chắn muốn hủy đơn hàng #${orderId}?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Hủy đơn hàng',
+            cancelButtonText: 'Không',
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                return fetch('/cancel-order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        order_id: orderId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        throw new Error(data.message);
+                    }
+                    return data;
+                })
+                .catch(error => {
+                    Swal.showValidationMessage(error.message);
+                    return false;
+                });
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                Swal.fire({
+                    title: 'Thành công!',
+                    text: 'Đơn hàng đã được hủy.',
+                    icon: 'success',
+                    confirmButtonColor: '#f28c38'
+                }).then(() => {
+                    location.reload();
+                });
+            }
+        });
+    });
+
+    // Order detail modal functionality (nếu muốn dùng modal thay vì expand)
+    $(document).on('click', '.view-order-modal', function () {
+        const orderId = $(this).data('order-id');
+
+        // Show loading
+        Swal.fire({
+            title: 'Đang tải...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        fetch(`/api/order-detail/${orderId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const order = data.order;
+                let itemsHtml = '';
+
+                order.items.forEach(item => {
+                    itemsHtml += `
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <div class="d-flex align-items-center">
+                                <img src="/static/images/${item.image}" alt="${item.name}" 
+                                     class="me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                <div>
+                                    <p class="mb-0 fw-bold">${item.name}</p>
+                                    <small class="text-muted">Số lượng: ${item.quantity} × ${item.price.toLocaleString()} VNĐ</small>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="fw-bold">${item.total.toLocaleString()} VNĐ</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                Swal.fire({
+                    title: `Chi tiết đơn hàng #${order.id}`,
+                    html: `
+                        <div class="text-start">
+                            <div class="mb-3">
+                                <strong>Ngày đặt:</strong> ${order.date}<br>
+                                <strong>Trạng thái:</strong> <span class="badge bg-primary">${order.status}</span><br>
+                                <strong>Tổng tiền:</strong> <span class="text-danger fw-bold">${order.total.toLocaleString()} VNĐ</span>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6>Thông tin giao hàng:</h6>
+                                <strong>Người nhận:</strong> ${order.address.recipient}<br>
+                                <strong>SĐT:</strong> ${order.address.phone}<br>
+                                <strong>Địa chỉ:</strong> ${order.address.address}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6>Sản phẩm:</h6>
+                                ${itemsHtml}
+                            </div>
+                        </div>
+                    `,
+                    width: '600px',
+                    confirmButtonText: 'Đóng',
+                    confirmButtonColor: '#f28c38'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Lỗi!',
+                    text: data.message,
+                    icon: 'error',
+                    confirmButtonColor: '#f28c38'
+                });
+            }
+        })
+        .catch(error => {
+            Swal.fire({
+                title: 'Lỗi!',
+                text: 'Không thể tải thông tin đơn hàng',
+                icon: 'error',
+                confirmButtonColor: '#f28c38'
+            });
+        });
+    });
+
+    // Filter orders by status
+    $(document).on('change', '#order-status-filter', function() {
+        const selectedStatus = $(this).val();
+        const orderCards = $('.order-card');
+
+        if (selectedStatus === '') {
+            orderCards.show();
+        } else {
+            orderCards.each(function() {
+                const orderStatus = $(this).data('status');
+                if (orderStatus === selectedStatus) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        }
+    });
+});
