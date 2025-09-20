@@ -261,36 +261,13 @@ def get_product_detail(product_id):
         }), 500
 
 
-@admin_bp.route('/orders')
+@admin_bp.route('/manage_orders')
 def manage_orders():
-    """Quản lý đơn hàng"""
+    """Route cho trang quản lý đơn hàng"""
     if not require_admin():
-        flash('Bạn không có quyền truy cập!', 'error')
         return redirect(url_for('admin_login'))
 
-    try:
-        # Lấy parameters
-        status = request.args.get('status', '')
-        page = int(request.args.get('page', 1))
-        per_page = 20
-
-        # Query đơn hàng
-        query = DonHang.query
-
-        if status:
-            query = query.filter(DonHang.Status == status)
-
-        orders = query.order_by(DonHang.NgayDat.desc()).paginate(
-            page=page, per_page=per_page, error_out=False
-        )
-
-        return render_template('admin/orders.html',
-                               orders=orders,
-                               current_status=status)
-
-    except Exception as e:
-        flash(f'Lỗi khi tải danh sách đơn hàng: {str(e)}', 'error')
-        return redirect(url_for('admin.dashboard'))
+    return render_template('manage_orders.html')
 
 
 @admin_bp.route('/orders/<int:order_id>')

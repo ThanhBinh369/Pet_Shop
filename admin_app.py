@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from config import Config
-from models import db, SanPham, DonHang, TaiKhoan
+from models import db, SanPham, DonHang, TaiKhoan, ChiTiet_DonHang, DiaChi, DangNhap
 import cloudinary.uploader
 from services.services import AuthService, ProductService, OrderService
 from datetime import datetime, timedelta
@@ -723,6 +723,226 @@ def admin_dashboard_overview():
             'message': f'Lỗi: {str(e)}'
         }), 500
 
+# Phần xử lý cho quản lý đơn hàng
+@admin_app.route('/api/admin/order-stats')
+def admin_order_stats():
+    """API lấy thống kê đơn hàng"""
+    if not require_admin_auth():
+        return jsonify({'success': False, 'message': 'Không có quyền truy cập!'}), 403
 
+    try:
+        total_orders = DonHang.query.count()
+        pending_orders = DonHang.query.filter_by(Status='pending').count()
+        shipped_orders = DonHang.query.filter_by(Status='shipped').count()
+        delivered_orders = DonHang.query.filter_by(Status='delivered').count()
+        canceled_orders = DonHang.query.filter_by(Status='canceled').count()
+
+        return jsonify({
+            'success': True,
+            'stats': {
+                'total': total_orders,
+                'pending': pending_orders,
+                'shipped': shipped_orders,
+                'delivered': delivered_orders,
+                'canceled': canceled_orders
+            }
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Lỗi: {str(e)}'
+        }), 500
+
+
+@admin_app.route('/api/admin/orders')
+def admin_orders():
+    """API lấy danh sách đơn hàng"""
+    if not require_admin_auth():
+        return jsonify({'success': False, 'message': 'Không có quyền truy cập!'}), 403
+
+    try:
+        # Lấy tham số lọc từ query string
+        status_filter = request.args.get('status')
+        date_filter = request.args.get('date')
+        search_filter = request.args.get('search')
+
+        # Query cơ bản với JOIN
+        orders_query = db.session.query(DonHang, TaiKhoan).join(
+            TaiKhoan, DonHang.MaTaiKhoan == TaiKhoan.MaTaiKhoan
+        )
+
+        # Áp dụng các bộ lọc
+        if status_filter:
+            orders_query = orders_query.filter(DonHang.Status == status_filter)
+
+        if date_filter:
+            orders_query = orders_query.filter(
+                func.date(DonHang.NgayDat) == date_filter
+            )
+
+        if search_filter:
+            orders_query = orders_query.filter(
+                db.or_(
+                    DonHang.MaDonHang.like(f'%{search_filter}%'),
+                    TaiKhoan.Ho.like(f'%{search_filter}%'),
+                    TaiKhoan.Ten.like(f'%{search_filter}%')
+                )
+            )
+
+        # Sắp xếp theo ngày đặt giảm dần
+        orders_query = orders_query.order_by(DonHang.NgayDat.desc())
+
+        # Lấy kết quả
+        orders_data = orders_query.all()
+
+        result = []
+        for order_data in orders_data:
+            order, user = order_data
+
+            # Tạo tên đầy đủ từ Ho và Ten
+            customer_name = f"{user.Ho or ''} {user.Ten or ''}".strip()
+            if not customer_name:
+                customer_name = f"Khách hàng #{user.MaTaiKhoan}"
+
+            result.append({
+                'id': order.MaDonHang,
+                'customer_name': customer_name,
+                'date': order.NgayDat.isoformat() if order.NgayDat else '',
+                'total': float(order.TongTien) if order.TongTien else 0,
+                'status': order.Status or 'pending'
+            })
+
+        return jsonify({
+            'success': True,
+            'orders': result,
+            'total': len(result)
+        })
+
+    except Exception as e:
+        print(f"Error loading orders: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Lỗi: {str(e)}'
+        }), 500
+
+
+@admin_app.route('/api/admin/orders/<int:order_id>')
+def admin_order_detail(order_id):
+    """API lấy chi tiết đơn hàng"""
+    if not require_admin_auth():
+        return jsonify({'success': False, 'message': 'Không có quyền truy cập!'}), 403
+
+    try:
+        # Lấy đơn hàng với thông tin khách hàng và địa chỉ
+        order_query = db.session.query(DonHang, TaiKhoan, DiaChi, DangNhap).join(
+            TaiKhoan, DonHang.MaTaiKhoan == TaiKhoan.MaTaiKhoan
+        ).join(
+            DiaChi, DonHang.MaDiaChi == DiaChi.MaDiaChi
+        ).outerjoin(
+            DangNhap, TaiKhoan.MaTaiKhoan == DangNhap.MaTaiKhoan
+        ).filter(DonHang.MaDonHang == order_id).first()
+
+        if not order_query:
+            return jsonify({
+                'success': False,
+                'message': 'Không tìm thấy đơn hàng'
+            }), 404
+
+        order, user, shipping_address, login_info = order_query
+
+        # Lấy chi tiết sản phẩm trong đơn hàng
+        order_items = db.session.query(ChiTiet_DonHang, SanPham).join(
+            SanPham, ChiTiet_DonHang.MaSanPham == SanPham.MaSanPham
+        ).filter(ChiTiet_DonHang.MaDonHang == order_id).all()
+
+        items = []
+        for item_data in order_items:
+            item, product = item_data
+            items.append({
+                'product_name': product.TenSanPham,
+                'quantity': item.SoLuong,
+                'price': float(item.DonGia) if item.DonGia else 0
+            })
+
+        # Tạo tên đầy đủ
+        customer_name = f"{user.Ho or ''} {user.Ten or ''}".strip()
+        if not customer_name:
+            customer_name = f"Khách hàng #{user.MaTaiKhoan}"
+
+        result = {
+            'id': order.MaDonHang,
+            'date': order.NgayDat.isoformat() if order.NgayDat else '',
+            'status': order.Status or 'pending',
+            'total': float(order.TongTien) if order.TongTien else 0,
+            'customer': {
+                'name': customer_name,
+                'email': login_info.DiaChiEmail if login_info else 'N/A',
+                'phone': user.SoDienThoai or 'N/A'
+            },
+            'shipping': {
+                'receiver_name': shipping_address.TenNguoiNhan or customer_name,
+                'phone': shipping_address.SoDienThoai or user.SoDienThoai or 'N/A',
+                'address': f"{shipping_address.DiaChi or ''}, {shipping_address.QuanHuyen or ''}, {shipping_address.TinhThanh or ''}".strip(
+                    ', ')
+            },
+            'items': items
+        }
+
+        return jsonify({
+            'success': True,
+            'order': result
+        })
+
+    except Exception as e:
+        print(f"Error loading order detail: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Lỗi: {str(e)}'
+        }), 500
+
+
+@admin_app.route('/api/admin/orders/<int:order_id>/status', methods=['PUT'])
+def admin_update_order_status(order_id):
+    """API cập nhật trạng thái đơn hàng"""
+    if not require_admin_auth():
+        return jsonify({'success': False, 'message': 'Không có quyền truy cập!'}), 403
+
+    try:
+        data = request.get_json()
+        new_status = data.get('status')
+
+        # Kiểm tra trạng thái hợp lệ
+        valid_statuses = ['pending', 'shipped', 'delivered', 'canceled']
+        if new_status not in valid_statuses:
+            return jsonify({
+                'success': False,
+                'message': 'Trạng thái không hợp lệ'
+            }), 400
+
+        # Tìm đơn hàng
+        order = DonHang.query.get(order_id)
+        if not order:
+            return jsonify({
+                'success': False,
+                'message': 'Không tìm thấy đơn hàng'
+            }), 404
+
+        # Cập nhật trạng thái
+        order.Status = new_status
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Đã cập nhật trạng thái đơn hàng #{order_id} thành {new_status}'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating order status: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Lỗi: {str(e)}'
+        }), 500
 if __name__ == '__main__':
     admin_app.run(debug=True, host='0.0.0.0', port=443)
