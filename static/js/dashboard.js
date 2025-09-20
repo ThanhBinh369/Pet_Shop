@@ -14,7 +14,7 @@ class AdminDashboard {
 
     async loadStatistics() {
         try {
-            const response = await fetch('/api/admin/statistics');
+            const response = await fetch('/api/admin/quick-stats');
             const data = await response.json();
 
             if (data.success) {
@@ -52,55 +52,112 @@ class AdminDashboard {
     }
 
     async loadCharts() {
-        // Load sales chart data
         try {
-            const response = await fetch('/api/admin/statistics');
+            // Mặc định load 7 ngày
+            const response = await fetch('/api/admin/sales-chart?period=7');
             const data = await response.json();
 
             if (data.success) {
                 this.renderSalesChart(data.chartData);
+                this.setupChartPeriodButtons();
+            } else {
+                console.error('Error loading chart data:', data.message);
             }
         } catch (error) {
             console.error('Error loading chart data:', error);
         }
     }
 
+
+    setupChartPeriodButtons() {
+        const buttons = document.querySelectorAll('[data-period]');
+        buttons.forEach(button => {
+            button.addEventListener('click', async (e) => {
+                // Remove active class from all buttons
+                buttons.forEach(btn => btn.classList.remove('active'));
+                // Add active class to clicked button
+                e.target.classList.add('active');
+
+                const period = e.target.getAttribute('data-period');
+                try {
+                    const response = await fetch(`/api/admin/sales-chart?period=${period}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.renderSalesChart(data.chartData);
+                    }
+                } catch (error) {
+                    console.error('Error loading chart data:', error);
+                }
+            });
+        });
+    }
+
     renderSalesChart(chartData) {
         const ctx = document.getElementById('salesChart');
         if (!ctx) return;
-
-        // Sample chart rendering (requires Chart.js)
+        // Xóa chart cũ nếu có
+        if (this.salesChart) {
+            this.salesChart.destroy();
+        }
         if (typeof Chart !== 'undefined') {
-            new Chart(ctx, {
+            this.salesChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: chartData.labels || ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
+                    labels: chartData.labels || [],
                     datasets: [{
-                        label: 'Doanh thu',
-                        data: chartData.values || [12, 19, 3, 5, 2, 3, 10],
+                        label: 'Doanh thu (VND)',
+                        data: chartData.values || [],
                         borderColor: '#f28c38',
                         backgroundColor: 'rgba(242, 140, 56, 0.1)',
                         tension: 0.4,
-                        fill: true
+                        fill: true,
+                        pointBackgroundColor: '#f28c38',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5
                     }]
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: {
-                        title: {
+                        legend: {
                             display: true,
-                            text: 'Doanh thu tuần này'
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return 'Doanh thu: ' + new Intl.NumberFormat('vi-VN').format(context.parsed.y) + ' VND';
+                                }
+                            }
                         }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
                             ticks: {
-                                callback: function(value) {
-                                    return value.toLocaleString('vi-VN') + ' đ';
+                                callback: function (value) {
+                                    if (value >= 1000000) {
+                                        return (value / 1000000).toFixed(1) + ' triệu';
+                                    } else if (value >= 1000) {
+                                        return (value / 1000).toFixed(0) + ' nghìn';
+                                    } else {
+                                        return value.toLocaleString('vi-VN') + ' đ';
+                                    }
                                 }
                             }
                         }
+                    },
+                    elements: {
+                        point: {
+                            hoverRadius: 8
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
                     }
                 }
             });
@@ -194,7 +251,8 @@ class AdminDashboard {
         // Auto refresh every 30 seconds
         setInterval(() => {
             this.loadStatistics();
-        }, 30000);
+            this.loadCharts(); // Thêm dòng này
+        }, 60000);
     }
 
     refreshDashboard() {
@@ -281,7 +339,7 @@ class AdminDashboard {
 }
 
 // Initialize dashboard when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     window.adminDashboard = new AdminDashboard();
 });
 

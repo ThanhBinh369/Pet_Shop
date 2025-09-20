@@ -279,3 +279,16 @@ body {
         font-size: 2rem;
     }
 }
+#salesChart {
+    max-height: 400px;
+}
+
+.chart-container canvas {
+    max-height: 400px !important;
+}
+
+.btn-group .btn.active {
+    background-color: #f28c38;
+    border-color: #f28c38;
+    color: white;
+}
