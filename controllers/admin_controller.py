@@ -269,6 +269,14 @@ def manage_orders():
 
     return render_template('manage_orders.html')
 
+@admin_bp.route('/manage_customers')
+def manage_customers():
+    """Route cho trang quản lý khách hàng"""
+    if not require_admin():
+        return redirect(url_for('admin_login'))
+
+    return render_template('manage_customer.html')
+
 
 @admin_bp.route('/orders/<int:order_id>')
 def order_detail(order_id):

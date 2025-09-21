@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Khách Hàng - Pet Shop Admin</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/dashboard.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/customer.css') }}" rel="stylesheet">
+</head>
+<body>
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="#">
+            <i class="fas fa-paw"></i> Pet Shop Admin
+        </a>
+        <div class="navbar-nav ms-auto">
+            <span class="nav-link">
+                <i class="fas fa-user"></i> {{ admin_username or 'Admin' }}
+            </span>
+            <a class="nav-link" href="{{ url_for('admin_logout') }}">
+                <i class="fas fa-sign-out-alt"></i> Đăng xuất
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-2 sidebar">
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('admin.dashboard') }}" class="list-group-item list-group-item-action">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+                <a href="{{ url_for('admin.manage_products') }}" class="list-group-item list-group-item-action">
+                    <i class="fas fa-box"></i> Quản lý sản phẩm
+                </a>
+                <a href="{{ url_for('admin.manage_orders') }}" class="list-group-item list-group-item-action">
+                    <i class="fas fa-shopping-cart"></i> Đơn hàng
+                </a>
+                <a href="#" class="list-group-item list-group-item-action active">
+                    <i class="fas fa-users"></i> Khách hàng
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-10 main-content">
+            <div class="content-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1><i class="fas fa-users"></i> Quản Lý Khách Hàng</h1>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+                                <li class="breadcrumb-item active">Khách hàng</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card primary">
+                        <div class="stats-header">
+                            <div>
+                                <h3 class="stats-number" id="total-customers">0</h3>
+                                <p class="stats-label">Tổng Khách Hàng</p>
+                            </div>
+                            <div class="stats-icon primary">
+                                <i class="fas fa-users"></i>
+                            </div>
+                        </div>
+                        <div class="stats-change positive">
+                            <i class="fas fa-arrow-up"></i> Tổng số đăng ký
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card success">
+                        <div class="stats-header">
+                            <div>
+                                <h3 class="stats-number" id="active-customers">0</h3>
+                                <p class="stats-label">Hoạt Động</p>
+                            </div>
+                            <div class="stats-icon success">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                        </div>
+                        <div class="stats-change positive">
+                            <i class="fas fa-arrow-up"></i> Có đơn hàng
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card info">
+                        <div class="stats-header">
+                            <div>
+                                <h3 class="stats-number" id="new-customers">0</h3>
+                                <p class="stats-label">Khách Hàng Mới</p>
+                            </div>
+                            <div class="stats-icon info">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                        </div>
+                        <div class="stats-change">
+                            Tháng này
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card warning">
+                        <div class="stats-header">
+                            <div>
+                                <h3 class="stats-number" id="vip-customers">0</h3>
+                                <p class="stats-label">VIP</p>
+                            </div>
+                            <div class="stats-icon warning">
+                                <i class="fas fa-crown"></i>
+                            </div>
+                        </div>
+                        <div class="stats-change">
+                            <i class="fas fa-star"></i> Khách hàng thân thiết
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters and Controls -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h5 class="chart-title">Bộ Lọc Khách Hàng</h5>
+                    <button id="refresh-customers" class="btn btn-primary">
+                        <i class="fas fa-sync-alt"></i> Làm Mới
+                    </button>
+                </div>
+                <div class="row">
+                    <div class="col-md-3">
+                        <select id="status-filter" class="form-select">
+                            <option value="">Tất Cả Trạng Thái</option>
+                            <option value="active">Hoạt Động</option>
+                            <option value="inactive">Không Hoạt Động</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select id="order-filter" class="form-select">
+                            <option value="">Tất Cả</option>
+                            <option value="has_orders">Có Đơn Hàng</option>
+                            <option value="no_orders">Chưa Có Đơn</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" id="search-filter" class="form-control" placeholder="Tìm kiếm theo mã, tên hoặc email...">
+                    </div>
+                    <div class="col-md-2">
+                        <button id="clear-filters" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-times"></i> Xóa Bộ Lọc
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customers Table -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h5 class="table-title">Danh Sách Khách Hàng</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Mã KH</th>
+                                <th>Họ Tên</th>
+                                <th>Email</th>
+                                <th>Số Điện Thoại</th>
+                                <th>Số Đơn Hàng</th>
+                                <th>Tổng Chi Tiêu</th>
+                                <th>Trạng Thái</th>
+                                <th>Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customers-table-body">
+                            <!-- Customers will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Loading Spinner -->
+                <div id="loading-spinner" class="text-center py-5" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Đang tải dữ liệu...</p>
+                </div>
+
+                <!-- No Data Message -->
+                <div id="no-data-message" class="text-center py-5" style="display: none;">
+                    <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">Không tìm thấy khách hàng nào</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Customer Detail Modal -->
+<div id="customer-detail-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Chi Tiết Khách Hàng #<span id="modal-customer-id"></span></h2>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="customer-info-grid">
+                <div class="customer-personal-info">
+                    <h3>Thông Tin Cá Nhân</h3>
+                    <p><strong>Họ Tên:</strong> <span id="modal-customer-name"></span></p>
+                    <p><strong>Email:</strong> <span id="modal-customer-email"></span></p>
+                    <p><strong>Số Điện Thoại:</strong> <span id="modal-customer-phone"></span></p>
+                    <p><strong>Ngày Sinh:</strong> <span id="modal-customer-birth"></span></p>
+                    <p><strong>Giới Tính:</strong> <span id="modal-customer-gender"></span></p>
+                    <p><strong>Địa Chỉ:</strong> <span id="modal-customer-address"></span></p>
+                </div>
+                <div class="customer-stats-info">
+                    <h3>Thống Kê</h3>
+                    <p><strong>Số Đơn Hàng:</strong> <span id="modal-total-orders" class="text-primary"></span></p>
+                    <p><strong>Tổng Chi Tiêu:</strong> <span id="modal-total-spent" class="text-success"></span></p>
+                    <p><strong>Đơn Hàng Gần Nhất:</strong> <span id="modal-last-order"></span></p>
+                    <p><strong>Trạng Thái:</strong> <span id="modal-customer-status"></span></p>
+                </div>
+            </div>
+
+            <div class="customer-orders">
+                <h3>Lịch Sử Đơn Hàng (5 đơn gần nhất)</h3>
+                <table class="customer-orders-table">
+                    <thead>
+                        <tr>
+                            <th>Mã Đơn</th>
+                            <th>Ngày Đặt</th>
+                            <th>Tổng Tiền</th>
+                            <th>Trạng Thái</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modal-customer-orders">
+                        <!-- Customer orders will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <div class="customer-actions">
+                <button id="delete-customer-btn" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Xóa Khách Hàng
+                </button>
+            </div>
+            <button class="btn btn-secondary" onclick="closeCustomerModal()">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmation-modal" class="modal">
+    <div class="modal-content confirmation-modal">
+        <div class="modal-header">
+            <h2>Xác Nhận</h2>
+            <span class="close" onclick="closeConfirmationModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="text-center">
+                <i class="fas fa-exclamation-triangle text-warning fa-3x mb-3"></i>
+                <p id="confirmation-message">Bạn có chắc chắn muốn thực hiện hành động này?</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button id="confirm-action-btn" class="btn btn-danger">Xác Nhận</button>
+            <button class="btn btn-secondary" onclick="closeConfirmationModal()">Hủy</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="position-fixed bottom-0 end-0 p-3" id="toastContainer" style="z-index: 11"></div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/customer.js') }}"></script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from config import Config
-from models import db, SanPham, DonHang, TaiKhoan, ChiTiet_DonHang, DiaChi, DangNhap
+from models import db, SanPham, DonHang, TaiKhoan, ChiTiet_DonHang, DiaChi, DangNhap, GioHang, GioHang_SanPham
 import cloudinary.uploader
 from services.services import AuthService, ProductService, OrderService
 from datetime import datetime, timedelta
@@ -944,5 +944,294 @@ def admin_update_order_status(order_id):
             'success': False,
             'message': f'Lỗi: {str(e)}'
         }), 500
+
+
+# API thống kê khách hàng
+@admin_app.route('/api/admin/customer-stats')
+def admin_customer_stats():
+    """API lấy thống kê khách hàng"""
+    if not require_admin_auth():
+        return jsonify({'success': False, 'message': 'Không có quyền truy cập!'}), 403
+
+    try:
+        # Tổng số khách hàng
+        total_customers = TaiKhoan.query.count()
+
+        # Khách hàng có đơn hàng (active)
+        active_customers = db.session.query(TaiKhoan.MaTaiKhoan).join(
+            DonHang, TaiKhoan.MaTaiKhoan == DonHang.MaTaiKhoan
+        ).distinct().count()
+
+        # Khách hàng mới trong tháng này (do không có NgayTao trong TaiKhoan, tạm tính = 0)
+        new_customers_this_month = 0
+
+        # Khách hàng VIP (có tổng chi tiêu > 10 triệu)
+        vip_customers = db.session.query(TaiKhoan.MaTaiKhoan).join(
+            DonHang, TaiKhoan.MaTaiKhoan == DonHang.MaTaiKhoan
+        ).filter(
+            DonHang.Status.in_(['delivered', 'shipped'])
+        ).group_by(TaiKhoan.MaTaiKhoan).having(
+            func.sum(DonHang.TongTien) > 10000000
+        ).count()
+
+        return jsonify({
+            'success': True,
+            'stats': {
+                'total': total_customers,
+                'active': active_customers,
+                'new_this_month': new_customers_this_month,
+                'vip': vip_customers
+            }
+        })
+
+    except Exception as e:
+        print(f"Error loading customer stats: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Lỗi: {str(e)}'
+        }), 500
+
+
+@admin_app.route('/api/admin/customers')
+def admin_customers():
+    """API lấy danh sách khách hàng"""
+    if not require_admin_auth():
+        return jsonify({'success': False, 'message': 'Không có quyền truy cập!'}), 403
+
+    try:
+        # Lấy tham số lọc từ query string
+        status_filter = request.args.get('status')
+        order_filter = request.args.get('order')
+        search_filter = request.args.get('search')
+
+        # Query cơ bản với LEFT JOIN để lấy thông tin email và thống kê đơn hàng
+        from sqlalchemy import case
+
+        customers_query = db.session.query(
+            TaiKhoan,
+            DangNhap.DiaChiEmail,
+            func.count(DonHang.MaDonHang).label('total_orders'),
+            func.sum(
+                case(
+                    (DonHang.Status.in_(['delivered', 'shipped']), DonHang.TongTien),
+                    else_=0
+                )
+            ).label('total_spent')
+        ).outerjoin(
+            DangNhap, TaiKhoan.MaTaiKhoan == DangNhap.MaTaiKhoan
+        ).outerjoin(
+            DonHang, TaiKhoan.MaTaiKhoan == DonHang.MaTaiKhoan
+        ).group_by(TaiKhoan.MaTaiKhoan, DangNhap.DiaChiEmail)
+
+        # Áp dụng các bộ lọc
+        if search_filter:
+            customers_query = customers_query.filter(
+                db.or_(
+                    TaiKhoan.MaTaiKhoan.like(f'%{search_filter}%'),
+                    TaiKhoan.Ho.like(f'%{search_filter}%'),
+                    TaiKhoan.Ten.like(f'%{search_filter}%'),
+                    DangNhap.DiaChiEmail.like(f'%{search_filter}%')
+                )
+            )
+
+        # Sắp xếp theo mã tài khoản giảm dần
+        customers_query = customers_query.order_by(TaiKhoan.MaTaiKhoan.desc())
+
+        # Lấy kết quả
+        customers_data = customers_query.all()
+
+        result = []
+        for customer_data in customers_data:
+            customer, email, total_orders, total_spent = customer_data
+
+            # Tạo tên đầy đủ
+            full_name = f"{customer.Ho or ''} {customer.Ten or ''}".strip()
+            if not full_name:
+                full_name = f"Khách hàng #{customer.MaTaiKhoan}"
+
+            # Xác định trạng thái
+            status = 'active' if total_orders > 0 else 'inactive'
+
+            # Áp dụng bộ lọc trạng thái
+            if status_filter and status != status_filter:
+                continue
+
+            # Áp dụng bộ lọc đơn hàng
+            if order_filter:
+                if order_filter == 'has_orders' and total_orders == 0:
+                    continue
+                elif order_filter == 'no_orders' and total_orders > 0:
+                    continue
+
+            result.append({
+                'id': customer.MaTaiKhoan,
+                'full_name': full_name,
+                'email': email,
+                'phone': customer.SoDienThoai,
+                'total_orders': total_orders or 0,
+                'total_spent': float(total_spent) if total_spent else 0,
+                'status': status
+            })
+
+        return jsonify({
+            'success': True,
+            'customers': result,
+            'total': len(result)
+        })
+
+    except Exception as e:
+        print(f"Error loading customers: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Lỗi: {str(e)}'
+        }), 500
+
+
+@admin_app.route('/api/admin/customers/<int:customer_id>')
+def admin_customer_detail(customer_id):
+    """API lấy chi tiết khách hàng"""
+    if not require_admin_auth():
+        return jsonify({'success': False, 'message': 'Không có quyền truy cập!'}), 403
+
+    try:
+        # Lấy thông tin khách hàng với email
+        customer_query = db.session.query(TaiKhoan, DangNhap).outerjoin(
+            DangNhap, TaiKhoan.MaTaiKhoan == DangNhap.MaTaiKhoan
+        ).filter(TaiKhoan.MaTaiKhoan == customer_id).first()
+
+        if not customer_query:
+            return jsonify({
+                'success': False,
+                'message': 'Không tìm thấy khách hàng'
+            }), 404
+
+        customer, login_info = customer_query
+
+        # Lấy thống kê đơn hàng
+        from sqlalchemy import case
+
+        orders_stats = db.session.query(
+            func.count(DonHang.MaDonHang).label('total_orders'),
+            func.sum(
+                case(
+                    (DonHang.Status.in_(['delivered', 'shipped']), DonHang.TongTien),
+                    else_=0
+                )
+            ).label('total_spent'),
+            func.max(DonHang.NgayDat).label('last_order_date')
+        ).filter(DonHang.MaTaiKhoan == customer_id).first()
+
+        # Lấy 5 đơn hàng gần nhất
+        recent_orders = db.session.query(DonHang).filter(
+            DonHang.MaTaiKhoan == customer_id
+        ).order_by(DonHang.NgayDat.desc()).limit(5).all()
+
+        # Tạo tên đầy đủ
+        full_name = f"{customer.Ho or ''} {customer.Ten or ''}".strip()
+        if not full_name:
+            full_name = f"Khách hàng #{customer.MaTaiKhoan}"
+
+        # Format ngày sinh
+        birth_date = None
+        if customer.NgaySinh:
+            birth_date = customer.NgaySinh.strftime('%d/%m/%Y')
+
+        # Xác định trạng thái
+        total_orders = orders_stats[0] if orders_stats else 0
+        status = 'active' if total_orders > 0 else 'inactive'
+
+        # Format lịch sử đơn hàng
+        orders_history = []
+        for order in recent_orders:
+            orders_history.append({
+                'id': order.MaDonHang,
+                'date': order.NgayDat.isoformat() if order.NgayDat else '',
+                'total': float(order.TongTien) if order.TongTien else 0,
+                'status': order.Status or 'pending'
+            })
+
+        result = {
+            'id': customer.MaTaiKhoan,
+            'full_name': full_name,
+            'email': login_info.DiaChiEmail if login_info else None,
+            'phone': customer.SoDienThoai,
+            'birth_date': birth_date,
+            'gender': customer.GioiTinh,
+            'address': customer.DiaChi,
+            'total_orders': total_orders or 0,
+            'total_spent': float(orders_stats[1]) if orders_stats and orders_stats[1] else 0,
+            'last_order_date': orders_stats[2].strftime('%d/%m/%Y') if orders_stats and orders_stats[2] else None,
+            'status': status,
+            'recent_orders': orders_history
+        }
+
+        return jsonify({
+            'success': True,
+            'customer': result
+        })
+
+    except Exception as e:
+        print(f"Error loading customer detail: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Lỗi: {str(e)}'
+        }), 500
+
+
+@admin_app.route('/api/admin/customers/<int:customer_id>', methods=['DELETE'])
+def admin_delete_customer(customer_id):
+    """API xóa khách hàng"""
+    if not require_admin_auth():
+        return jsonify({'success': False, 'message': 'Không có quyền truy cập!'}), 403
+
+    try:
+        # Tìm khách hàng
+        customer = TaiKhoan.query.get(customer_id)
+        if not customer:
+            return jsonify({
+                'success': False,
+                'message': 'Không tìm thấy khách hàng'
+            }), 404
+
+        # Kiểm tra xem khách hàng có đơn hàng không
+        order_count = DonHang.query.filter_by(MaTaiKhoan=customer_id).count()
+        if order_count > 0:
+            return jsonify({
+                'success': False,
+                'message': 'Không thể xóa khách hàng đã có đơn hàng. Vui lòng liên hệ quản trị viên để xử lý.'
+            }), 400
+
+        # Xóa các bản ghi liên quan trước
+        # Xóa thông tin đăng nhập
+        DangNhap.query.filter_by(MaTaiKhoan=customer_id).delete()
+
+        # Xóa địa chỉ
+        DiaChi.query.filter_by(MaTaiKhoan=customer_id).delete()
+
+        # Xóa giỏ hàng và sản phẩm trong giỏ hàng
+        gio_hangs = GioHang.query.filter_by(MaTaiKhoan=customer_id).all()
+        for gio_hang in gio_hangs:
+            GioHang_SanPham.query.filter_by(MaGioHang=gio_hang.MaGioHang).delete()
+        GioHang.query.filter_by(MaTaiKhoan=customer_id).delete()
+
+        # Cuối cùng xóa tài khoản
+        db.session.delete(customer)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Đã xóa khách hàng #{customer_id} thành công'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting customer: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Lỗi: {str(e)}'
+        }), 500
+
+
+
 if __name__ == '__main__':
     admin_app.run(debug=True, host='0.0.0.0', port=443)
