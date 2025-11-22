@@ -210,7 +210,7 @@ Truy cập: `http://localhost:5000`
 - MSSV: 2251012016
 - Trường: Đại Học Mở TP.HCM
 - Khoa: Công Nghệ Thông Tin
-- Email: [thanhbinh@ou.edu.vn]
+- Email: [2251012016binh@ou.edu.vn]
 
 **Giảng viên hướng dẫn:**
 - ThS. Hồ Quang Khải
