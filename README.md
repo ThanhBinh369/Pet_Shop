@@ -210,7 +210,7 @@ Truy cập: `http://localhost:5000`
 - MSSV: 2251012016
 - Trường: Đại Học Mở TP.HCM
 - Khoa: Công Nghệ Thông Tin
-- Email: [thanhbinh@student.ou.edu.vn]
+- Email: [thanhbinh@ou.edu.vn]
 
 **Giảng viên hướng dẫn:**
 - ThS. Hồ Quang Khải
@@ -239,8 +239,8 @@ Em xin chân thành cảm ơn:
 ## 📞 Liên Hệ & Hỗ Trợ
 
 Nếu bạn có bất kỳ câu hỏi hoặc góp ý nào, vui lòng liên hệ qua:
-- Email: [email của bạn]
-- GitHub Issues: [Link issues]
+- Email: [17bighero10@gmail.com]
+
 
 ---
 
